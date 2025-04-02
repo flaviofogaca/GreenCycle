@@ -32,5 +32,9 @@ O **GreenCycle** é uma plataforma que conecta cidadãos a pontos de coleta e pa
 - React (em andamento)
 - 
 - 
-
+📌 Repositório separado, em desenvolvimento por @DBalbinot
 ---
+
+⭐ Licença
+
+Este projeto é livre para fins acadêmicos. Sinta-se à vontade para contribuir, dar uma estrela e usar como inspiração para projetos sustentáveis 🌱

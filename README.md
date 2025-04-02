@@ -29,10 +29,12 @@ O **GreenCycle** é uma plataforma que conecta cidadãos a pontos de coleta e pa
 - JWT Authentication
 
 **Frontend:**
+
+Repositório separado, em desenvolvimento por @DBalbinot
+
 - React (em andamento)
 - 
 - 
-📌 Repositório separado, em desenvolvimento por @DBalbinot
 ---
 
 ⭐ Licença

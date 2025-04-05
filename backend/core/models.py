@@ -37,6 +37,8 @@ class Clientes(Base):
     id_usuarios = models.OneToOneField(
         'Usuarios', models.DO_NOTHING, db_column='id_usuarios')
     cpf = models.CharField(unique=True, max_length=15)
+    data_nascimento = models.DateField()
+    sexo = models.CharField(max_length=20)
 
     class Meta:
         managed = False
@@ -183,6 +185,7 @@ class Telefones(Base):
 class Usuarios(Base):
     id = models.SmallAutoField(primary_key=True)
     nome = models.CharField(max_length=100)
+    usuario = models.CharField(max_length=100, unique=True)
     email = models.CharField(max_length=100, blank=True, null=True)
     senha = models.TextField()
     id_endereco = models.ForeignKey(

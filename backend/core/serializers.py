@@ -21,14 +21,31 @@ class AvaliacoesSerializer(ModelSerializer):
             'atualizado_em',
         ]
 
+class UsuariosSerializer(ModelSerializer):
+    class Meta:
+        model = Usuarios
+        fields = [
+            'id',
+            'nome',
+            'usuario',
+            'email',
+            'senha',
+            'id_endereco',
+            'criado_em',
+            'atualizado_em',
+        ]
 
 class ClientesSerializer(ModelSerializer):
+    id_usuarios = UsuariosSerializer()
+
     class Meta:
         model = Clientes
         fields = [
             'id',
             'id_usuarios',
             'cpf',
+            'data_nascimento',
+            'sexo',
             'criado_em',
             'atualizado_em',
         ]
@@ -157,20 +174,6 @@ class TelefonesSerializer(ModelSerializer):
         fields = [
             'id_usuarios',
             'numero',
-            'criado_em',
-            'atualizado_em',
-        ]
-
-
-class UsuariosSerializer(ModelSerializer):
-    class Meta:
-        model = Usuarios
-        fields = [
-            'id',
-            'nome',
-            'email',
-            'senha',
-            'id_endereco',
             'criado_em',
             'atualizado_em',
         ]

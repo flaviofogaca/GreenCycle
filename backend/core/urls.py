@@ -11,7 +11,7 @@ from .views import (
     AvaliacoesViewSet, ClientesViewSet, ColetasViewSet, EnderecosViewSet,
     MateriaisViewSet, MateriaisParceirosViewSet, MateriaisPontosColetaViewSet,
     PagamentosViewSet, ParceirosViewSet, PontosColetaViewSet,
-    SolicitacoesViewSet, TelefonesViewSet, UsuariosViewSet, home
+    SolicitacoesViewSet, TelefonesViewSet, UsuariosViewSet, home, ClientesApiView, ParceirosApiView
 )
 
 router = DefaultRouter()
@@ -35,4 +35,6 @@ urlpatterns = [
     path('v1/', include(router.urls)),
     path('v1/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('v1/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('v1/clientes/', ClientesApiView.as_view(), name='clientes-list'),
+    path('v1/parceiros/', ParceirosApiView.as_view(), name='parceiros-list'),
 ]

@@ -1,5 +1,9 @@
 from rest_framework import viewsets
+from rest_framework.generics import ListCreateAPIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 from django.http import JsonResponse
 from .models import (
     Avaliacoes, Clientes, Coletas, Enderecos,
@@ -82,3 +86,27 @@ class UsuariosViewSet(viewsets.ModelViewSet):
     queryset = Usuarios.objects.all()
     serializer_class = UsuariosSerializer
     #permission_classes = [IsAuthenticated]
+
+class LoginAPIView(APIView):
+    def post(self, request):
+        nome = request.data.get('nome')
+        senha = request.data.get('senha')
+
+        try:
+            usuario = Usuarios.objects.get(nome=nome)
+
+            if usuario.senha == senha:
+                serializer = UsuariosSerializer(usuario)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                return Response({'detail': 'Senha incorreta'}, status=status.HTTP_401_UNAUTHORIZED)
+        except Usuarios.DoesNotExist:
+            return Response({'detail': 'Usuário não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+class ClientesApiView(ListCreateAPIView):
+    queryset = Clientes.objects.all()
+    serializer_class = ClientesSerializer
+
+class ParceirosApiView(ListCreateAPIView):
+    queryset = Parceiros.objects.all()
+    serializer_class = ParceirosSerializer

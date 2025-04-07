@@ -44,6 +44,8 @@ class Clientes(Base):
         managed = False
         db_table = 'clientes'
 
+def upload_image_coleta(instance,filename): 
+    return f"{instance.id}-{filename}" 
 
 class Coletas(Base):
     id = models.SmallAutoField(primary_key=True)
@@ -63,6 +65,8 @@ class Coletas(Base):
         'Solicitacoes', models.DO_NOTHING, db_column='id_solicitacoes')
     id_pagamentos = models.ForeignKey(
         'Pagamentos', models.DO_NOTHING, db_column='id_pagamentos')
+    images = models.ImageField(
+        upload_to=upload_image_coleta,blank=True, null=True) ## Função para fazer upload de imagem direto pro banco
 
     class Meta:
         managed = False

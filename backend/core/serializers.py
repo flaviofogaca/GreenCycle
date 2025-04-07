@@ -64,6 +64,7 @@ class ColetasSerializer(ModelSerializer):
             'id_enderecos',
             'id_solicitacoes',
             'id_pagamentos',
+            'images', #Adicionado coluna Images
             'criado_em',
             'atualizado_em',
         ]

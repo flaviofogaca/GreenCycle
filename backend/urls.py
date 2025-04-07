@@ -4,6 +4,9 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from django.conf.urls.static import static 
+from django.conf import settings 
+#Precisa instalar biblioteca pillow (pip install pillow )
 
 urlpatterns = [
     path('auth/', include('rest_framework.urls')),
@@ -12,3 +15,5 @@ urlpatterns = [
     path('v1/', include('core.urls')),
     path('', home, name='home')
 ]
+#+   static{settings.MEDIA_URL,document_root = settings.MEDIA_ROOT}
+## ta dando erro não sei se é por causa da biblioteca ou se o import settings q ta dando tilt;

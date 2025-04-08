@@ -13,6 +13,82 @@ class Base(models.Model):
         abstract = True
 
 
+# class UsuarioManager(BaseUserManager):
+#     def create_user(self, nome, email, senha, **extra_fields):
+#         if not email:
+#             raise ValueError('O email é obrigatório')
+
+#         email = self.normalize_email(email)
+#         user = self.model(
+#             nome=nome,
+#             email=email,
+#             **extra_fields
+#         )
+#         user.set_password(senha)
+#         user.save(using=self._db)
+#         return user
+
+
+# Modificar a classe Usuarios para herdar de AbstractBaseUser
+# class Usuarios(AbstractBaseUser):
+class Usuarios(Base):
+    id = models.SmallAutoField(primary_key=True)
+    nome = models.CharField(max_length=100)
+    usuario = models.CharField(max_length=100)
+    email = models.CharField(max_length=100, blank=True, null=True)
+    senha = models.TextField()
+    id_endereco = models.ForeignKey(
+        'Enderecos',
+        models.DO_NOTHING,
+        db_column='id_endereco',
+        blank=True,
+        null=True
+    )
+
+    # Campos necessários para o auth
+    # PASSWORD_FIELD = 'senha'
+    # USERNAME_FIELD = 'email'
+    # REQUIRED_FIELDS = ['nome']
+
+    # objects = UsuarioManager()
+
+    class Meta:
+        managed = False
+        db_table = 'usuarios'
+
+
+class Clientes(Base):
+    id = models.SmallAutoField(primary_key=True)
+    # id_usuarios = models.OneToOneField(
+    #     'Usuarios', models.DO_NOTHING, db_column='id_usuarios'
+    # )
+    id_usuarios = models.ForeignKey(
+        'Usuarios',
+        models.DO_NOTHING,
+        db_column='id_usuarios',
+        blank=True,
+        null=True
+    )
+    cpf = models.CharField(unique=True, max_length=15)
+    data_nascimento = models.DateField()
+    sexo = models.CharField(max_length=1)
+
+    class Meta:
+        managed = False
+        db_table = 'clientes'
+
+
+class Parceiros(Base):
+    id = models.SmallAutoField(primary_key=True)
+    id_usuarios = models.OneToOneField(
+        'Usuarios', models.DO_NOTHING, db_column='id_usuarios')
+    cnpj = models.CharField(unique=True, max_length=20)
+
+    class Meta:
+        managed = False
+        db_table = 'parceiros'
+
+
 class Avaliacoes(Base):
     id = models.SmallAutoField(primary_key=True)
     id_parceiros = models.ForeignKey(
@@ -32,20 +108,9 @@ class Avaliacoes(Base):
         db_table = 'avaliacoes'
 
 
-class Clientes(Base):
-    id = models.SmallAutoField(primary_key=True)
-    id_usuarios = models.OneToOneField(
-        'Usuarios', models.DO_NOTHING, db_column='id_usuarios')
-    cpf = models.CharField(unique=True, max_length=15)
-    data_nascimento = models.DateField()
-    sexo = models.CharField(max_length=20)
+def upload_image_coleta(instance, filename):
+    return f"{instance.id}-{filename}"
 
-    class Meta:
-        managed = False
-        db_table = 'clientes'
-
-def upload_image_coleta(instance,filename): 
-    return f"{instance.id}-{filename}" 
 
 class Coletas(Base):
     id = models.SmallAutoField(primary_key=True)
@@ -66,7 +131,8 @@ class Coletas(Base):
     id_pagamentos = models.ForeignKey(
         'Pagamentos', models.DO_NOTHING, db_column='id_pagamentos')
     images = models.ImageField(
-        upload_to=upload_image_coleta,blank=True, null=True) ## Função para fazer upload de imagem direto pro banco
+        # Função para fazer upload de imagem direto pro banco
+        upload_to=upload_image_coleta, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -137,17 +203,6 @@ class Pagamentos(Base):
         db_table = 'pagamentos'
 
 
-class Parceiros(Base):
-    id = models.SmallAutoField(primary_key=True)
-    id_usuarios = models.OneToOneField(
-        'Usuarios', models.DO_NOTHING, db_column='id_usuarios')
-    cnpj = models.CharField(unique=True, max_length=20)
-
-    class Meta:
-        managed = False
-        db_table = 'parceiros'
-
-
 class PontosColeta(Base):
     id = models.SmallAutoField(primary_key=True)
     nome = models.CharField(max_length=100)
@@ -184,18 +239,3 @@ class Telefones(Base):
     class Meta:
         managed = False
         db_table = 'telefones'
-
-
-class Usuarios(Base):
-    id = models.SmallAutoField(primary_key=True)
-    nome = models.CharField(max_length=100)
-    usuario = models.CharField(max_length=100, unique=True)
-    email = models.CharField(max_length=100, blank=True, null=True)
-    senha = models.TextField()
-    id_endereco = models.ForeignKey(
-        Enderecos, models.DO_NOTHING, db_column='id_endereco',
-        blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'usuarios'

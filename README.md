@@ -1,11 +1,11 @@
-# ♻️ GreenCycle - Sistema de Coleta Inteligente
+# ♻️ GreenCycle - O Ciclo Verde Começa Aqui!
 
 ![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
 ![Django](https://img.shields.io/badge/backend-Django-brightgreen)
 ![React](https://img.shields.io/badge/frontend-React-blue)
 ![PostgreSQL](https://img.shields.io/badge/banco-PostgreSQL-9cf)
 
-O **GreenCycle** é uma plataforma que conecta cidadãos a pontos de coleta e parceiros recicladores, promovendo o descarte correto de resíduos e incentivando a sustentabilidade urbana. Este projeto foi desenvolvido como parte de um trabalho acadêmico e representa a integração entre backend (Django) e frontend (React), com base de dados em PostgreSQL.
+O **GreenCycle** é uma plataforma que conecta cidadãos a pontos de coleta e parceiros recicladores, promovendo o descarte correto de resíduos e incentivando a sustentabilidade urbana. Este projeto está sendo desenvolvido como parte de um trabalho acadêmico e representa a integração entre backend (Django) e frontend (React), com base de dados em PostgreSQL.
 
 ---
 

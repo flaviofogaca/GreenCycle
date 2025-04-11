@@ -536,7 +536,14 @@ class PagamentosSerializer(ModelSerializer):
         ]
 
 
-class PontosColetaSerializer(ModelSerializer):
+class PontosColetaCreateSerializer(ModelSerializer):
+    materiais = PrimaryKeyRelatedField(
+        queryset=Materiais.objects.all(),
+        many=True,
+        required=True,
+        write_only=True
+    )
+
     class Meta:
         model = PontosColeta
         fields = [
@@ -545,9 +552,99 @@ class PontosColetaSerializer(ModelSerializer):
             'id_enderecos',
             'descricao',
             'horario_funcionamento',
+            'id_parceiros',
+            'materiais',
             'criado_em',
-            'atualizado_em',
+            'atualizado_em'
         ]
+        extra_kwargs = {
+            'id_enderecos': {'required': True},
+            'id_parceiros': {'required': False, 'allow_null': True}
+        }
+
+    def create(self, validated_data):
+        materiais_data = validated_data.pop('materiais', [])
+        ponto_coleta = PontosColeta.objects.create(**validated_data)
+
+        # Cria os relacionamentos com materiais
+        for material in materiais_data:
+            MateriaisPontosColeta.objects.create(
+                id_materiais=material,
+                id_pontos_coleta=ponto_coleta
+            )
+
+        return ponto_coleta
+
+
+class PontosColetaUpdateSerializer(ModelSerializer):
+    materiais = PrimaryKeyRelatedField(
+        queryset=Materiais.objects.all(),
+        many=True,
+        required=False,
+        write_only=True
+    )
+    nome = CharField(required=False)
+
+    class Meta:
+        model = PontosColeta
+        fields = [
+            'nome',
+            'id_enderecos',
+            'descricao',
+            'horario_funcionamento',
+            'id_parceiros',
+            'materiais'
+        ]
+        extra_kwargs = {
+            'id_enderecos': {'required': False},
+            'id_parceiros': {'required': False},
+            'descricao': {'required': False}
+        }
+
+    def update(self, instance, validated_data):
+        materiais_data = validated_data.pop('materiais', None)
+
+        # Atualiza os campos básicos
+        instance = super().update(instance, validated_data)
+
+        # Se materiais foram fornecidos, atualiza os relacionamentos
+        if materiais_data is not None:
+            # Remove relacionamentos existentes
+            MateriaisPontosColeta.objects.filter(
+                id_pontos_coleta=instance).delete()
+
+            # Cria novos relacionamentos
+            for material in materiais_data:
+                MateriaisPontosColeta.objects.create(
+                    id_materiais=material,
+                    id_pontos_coleta=instance
+                )
+
+        return instance
+
+
+class PontosColetaRetrieveSerializer(ModelSerializer):
+    materiais = MateriaisSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = PontosColeta
+        fields = [
+            'id',
+            'nome',
+            'id_enderecos',
+            'descricao',
+            'horario_funcionamento',
+            'id_parceiros',
+            'materiais',
+            'criado_em',
+            'atualizado_em'
+        ]
+        depth = 1
+
+    # def get_materiais(self, obj):
+    #     relacionamentos = obj.materiaispontoscoleta_set.all()
+    #     materiais = [rel.id_materiais for rel in relacionamentos]
+    #     return MateriaisSerializer(materiais, many=True).data
 
 
 class SolicitacoesSerializer(ModelSerializer):

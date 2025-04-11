@@ -132,7 +132,10 @@ class Coletas(Base):
         'Pagamentos', models.DO_NOTHING, db_column='id_pagamentos')
     images = models.ImageField(
         # Função para fazer upload de imagem direto pro banco
-        upload_to=upload_image_coleta, blank=True, null=True)
+        upload_to=upload_image_coleta,
+        blank=True,
+        null=True
+    )
 
     class Meta:
         managed = False
@@ -180,21 +183,6 @@ class MateriaisParceiros(models.Model):
         unique_together = (('id_materiais', 'id_parceiros'),)
 
 
-class MateriaisPontosColeta(models.Model):
-    # The composite primary key (id_materiais, id_pontos_coleta)
-    # found, that is not supported. The first column is selected.
-    id_materiais = models.OneToOneField(
-        Materiais, models.DO_NOTHING, db_column='id_materiais',
-        primary_key=True)
-    id_pontos_coleta = models.ForeignKey(
-        'PontosColeta', models.DO_NOTHING, db_column='id_pontos_coleta')
-
-    class Meta:
-        managed = False
-        db_table = 'materiais_pontos_coleta'
-        unique_together = (('id_materiais', 'id_pontos_coleta'),)
-
-
 class Pagamentos(Base):
     id = models.SmallAutoField(primary_key=True)
     valor_pagamento = models.TextField()  # This field type is a guess.
@@ -210,10 +198,26 @@ class PontosColeta(Base):
     id = models.SmallAutoField(primary_key=True)
     nome = models.CharField(max_length=100)
     id_enderecos = models.ForeignKey(
-        Enderecos, models.DO_NOTHING, db_column='id_enderecos')
+        Enderecos,
+        models.DO_NOTHING,
+        db_column='id_enderecos'
+    )
+    id_parceiros = models.ForeignKey(
+        Parceiros,
+        models.DO_NOTHING,
+        db_column='id_parceiros'
+    )
+    materiais = models.ManyToManyField(
+        'Materiais',
+        through='MateriaisPontosColeta',
+        related_name='pontos_de_coleta'
+    )
     descricao = models.CharField(max_length=200, blank=True, null=True)
     horario_funcionamento = models.CharField(
-        max_length=200, blank=True, null=True)
+        max_length=200,
+        blank=True,
+        null=True
+    )
 
     class Meta:
         managed = False
@@ -242,3 +246,23 @@ class Telefones(Base):
     class Meta:
         managed = False
         db_table = 'telefones'
+
+
+class MateriaisPontosColeta(models.Model):
+    id_materiais = models.OneToOneField(
+        'Materiais',
+        models.DO_NOTHING,
+        db_column='id_materiais',
+        primary_key=True  # Indica que este é parte da chave primária
+    )
+    id_pontos_coleta = models.ForeignKey(
+        'PontosColeta',
+        models.DO_NOTHING,
+        db_column='id_pontos_coleta'
+    )
+
+    class Meta:
+        managed = False
+        db_table = 'materiais_pontos_coleta'
+        unique_together = (('id_materiais', 'id_pontos_coleta'),)
+        auto_created = True

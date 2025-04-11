@@ -20,8 +20,9 @@ from .serializers import (
     EnderecoUpdateSerializer, EnderecoRetrieveSerializer,
     EnderecoBuscaCEPSerializer,
     MateriaisParceirosSerializer, MateriaisPontosColetaSerializer,
-    PagamentosSerializer, PontosColetaSerializer, SolicitacoesSerializer,
-    TelefonesSerializer
+    PagamentosSerializer, PontosColetaCreateSerializer,
+    PontosColetaUpdateSerializer, PontosColetaRetrieveSerializer,
+    SolicitacoesSerializer, TelefonesSerializer
 )
 
 
@@ -217,8 +218,14 @@ class PagamentosViewSet(viewsets.ModelViewSet):
 
 
 class PontosColetaViewSet(viewsets.ModelViewSet):
-    queryset = PontosColeta.objects.all()
-    serializer_class = PontosColetaSerializer
+    queryset = PontosColeta.objects.all().prefetch_related('materiais')
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return PontosColetaCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return PontosColetaUpdateSerializer
+        return PontosColetaRetrieveSerializer
     # permission_classes = [IsAuthenticated]
 
 

@@ -22,6 +22,7 @@ O **GreenCycle** é uma plataforma que conecta cidadãos a pontos de coleta e pa
 ## 🧪 Tecnologias Utilizadas
 
 **Backend:**
+
 Em desenvolvimento por mim e pelo @lucasdeinani
 - Python 3.13
 - Django 5.1

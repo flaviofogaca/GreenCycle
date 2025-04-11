@@ -144,7 +144,10 @@ class Enderecos(Base):
     cep = models.CharField(max_length=15)
     estado = models.CharField(max_length=50)
     cidade = models.CharField(max_length=50)
+    bairro = models.CharField(max_length=50)
     rua = models.CharField(max_length=50)
+    numero = models.SmallIntegerField()
+    complemento = models.CharField(max_length=100)
 
     class Meta:
         managed = False

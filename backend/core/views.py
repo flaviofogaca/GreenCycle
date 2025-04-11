@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.generics import ListCreateAPIView
 # from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from rest_framework.decorators import action
 from rest_framework.response import Response
 # from rest_framework.decorators import action
 from django.core.cache import cache
@@ -15,7 +16,9 @@ from .serializers import (
     UsuarioCreateSerializer, ClienteComUsuarioCreateSerializer,
     ClienteComUsuarioUpdateSerializer, ParceiroComUsuarioCreateSerializer,
     ParceiroComUsuarioUpdateSerializer, AvaliacoesSerializer,
-    ColetasSerializer, EnderecosSerializer, MateriaisSerializer,
+    ColetasSerializer, MateriaisSerializer, EnderecoCreateSerializer,
+    EnderecoUpdateSerializer, EnderecoRetrieveSerializer,
+    EnderecoBuscaCEPSerializer,
     MateriaisParceirosSerializer, MateriaisPontosColetaSerializer,
     PagamentosSerializer, PontosColetaSerializer, SolicitacoesSerializer,
     TelefonesSerializer
@@ -157,6 +160,26 @@ class ParceiroComUsuarioCreateViewSet(viewsets.ModelViewSet):
     # permission_classes = [IsAuthenticated]
 
 
+class EnderecosViewSet(viewsets.ModelViewSet):
+    queryset = Enderecos.objects.all()
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return EnderecoCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return EnderecoUpdateSerializer
+        elif self.action == 'buscar_cep':
+            return EnderecoBuscaCEPSerializer
+        return EnderecoRetrieveSerializer
+
+    @action(detail=False, methods=['post'], url_path='buscar-cep')
+    def buscar_cep(self, request):
+        serializer_class = EnderecoBuscaCEPSerializer(data=request.data)
+        serializer_class.is_valid(raise_exception=True)
+        endereco = serializer_class.buscar_endereco()
+        return Response(endereco)
+
+
 class AvaliacoesViewSet(viewsets.ModelViewSet):
     queryset = Avaliacoes.objects.all()
     serializer_class = AvaliacoesSerializer
@@ -166,12 +189,6 @@ class AvaliacoesViewSet(viewsets.ModelViewSet):
 class ColetasViewSet(viewsets.ModelViewSet):
     queryset = Coletas.objects.all()
     serializer_class = ColetasSerializer
-    # permission_classes = [IsAuthenticated]
-
-
-class EnderecosViewSet(viewsets.ModelViewSet):
-    queryset = Enderecos.objects.all()
-    serializer_class = EnderecosSerializer
     # permission_classes = [IsAuthenticated]
 
 

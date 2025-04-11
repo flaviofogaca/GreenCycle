@@ -61,3 +61,21 @@ class ValidacaoCNPJMixin:
 
         # Retorna no formato 00.000.000/0000-00
         return f'{cnpj[:2]}.{cnpj[2:5]}.{cnpj[5:8]}/{cnpj[8:12]}-{cnpj[12:]}'
+
+
+class ValidacaoCEPMixin:
+    @staticmethod
+    def validar_cep(value):
+        # Remove caracteres não numéricos
+        cep_numerico = re.sub(r'[^0-9]', '', value)
+
+        # Verifica se o CEP tem apenas números
+        if not cep_numerico.isdigit():
+            raise ValidationError("CEP deve conter apenas números")
+
+        # Verifica se o CEP tem exatamente 8 dígitos
+        if len(cep_numerico) != 8:
+            raise ValidationError("O CEP deve conter exatamente 8 dígitos.")
+
+        # Retorna o CEP formatado como string numérica
+        return cep_numerico

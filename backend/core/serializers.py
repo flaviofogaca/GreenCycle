@@ -1,5 +1,6 @@
 from rest_framework.serializers import (
-    ModelSerializer, CharField, PrimaryKeyRelatedField, DateField
+    ModelSerializer, CharField, PrimaryKeyRelatedField, DateField, Serializer,
+    ValidationError
 )
 from .models import (
     Avaliacoes, Clientes, Coletas, Enderecos,
@@ -9,9 +10,14 @@ from .models import (
 from django.core.validators import MinLengthValidator
 from .mixins import (
     ValidacaoCFPMixin,
-    ValidacaoCNPJMixin
+    ValidacaoCNPJMixin,
+    ValidacaoCEPMixin
 )
+import requests
 # from django.contrib.auth.hashers import make_password
+
+# Lembrar disso para os serializers
+# CRUD (create, retrieve, update, delete)
 
 
 class UsuarioCreateSerializer(ModelSerializer):
@@ -368,6 +374,89 @@ class ParceiroComUsuarioUpdateSerializer(ValidacaoCNPJMixin, ModelSerializer):
         return instance
 
 
+class EnderecoBuscaCEPSerializer(Serializer, ValidacaoCEPMixin):
+    cep = CharField(max_length=15)
+
+    def validate_cep(self, value):
+        cep = self.validar_cep(value)
+
+        # Consulta a API ViaCEP
+        url = f'https://viacep.com.br/ws/{cep}/json/'
+        response = requests.get(url)
+
+        if response.status_code != 200 or response.json().get('erro'):
+            raise ValidationError('CEP não encontrado')
+
+        return cep
+
+    def buscar_endereco(self):
+        cep = self.validated_data['cep']  # type: ignore
+        url = f'https://viacep.com.br/ws/{cep}/json/'
+        response = requests.get(url)
+        data = response.json()
+
+        return {
+            'cep': data.get('cep', '').replace('-', ''),
+            'estado': data.get('uf', ''),
+            'cidade': data.get('localidade', ''),
+            'bairro': data.get('bairro', ''),
+            'rua': data.get('logradouro', '')
+        }
+
+
+class EnderecoCreateSerializer(ModelSerializer, ValidacaoCEPMixin):
+    cep = CharField(max_length=15)
+
+    class Meta:
+        model = Enderecos
+        fields = [
+            'id',
+            'cep',
+            'estado',
+            'cidade',
+            'rua',
+            'bairro',
+            'numero',
+            'complemento',
+            'criado_em',
+            'atualizado_em'
+        ]
+        read_only_fields = [
+            'id',
+            'criado_em',
+            'atualizado_em'
+        ]
+
+    def validate_cep(self, value):
+        return self.validar_cep(value)
+
+
+class EnderecoUpdateSerializer(ModelSerializer):
+    class Meta:
+        model = Enderecos
+        fields = [
+            'numero',
+            'complemento'
+        ]
+
+
+class EnderecoRetrieveSerializer(ModelSerializer):
+    class Meta:
+        model = Enderecos
+        fields = [
+            'id',
+            'cep',
+            'estado',
+            'cidade',
+            'rua',
+            'bairro',
+            'numero',
+            'complemento',
+            'criado_em',
+            'atualizado_em'
+        ]
+
+
 class AvaliacoesSerializer(ModelSerializer):
     class Meta:
         model = Avaliacoes
@@ -398,20 +487,6 @@ class ColetasSerializer(ModelSerializer):
             'id_solicitacoes',
             'id_pagamentos',
             'images',  # Adicionado coluna Images
-            'criado_em',
-            'atualizado_em',
-        ]
-
-
-class EnderecosSerializer(ModelSerializer):
-    class Meta:
-        model = Enderecos
-        fields = [
-            'id',
-            'cep',
-            'estado',
-            'cidade',
-            'rua',
             'criado_em',
             'atualizado_em',
         ]

@@ -108,8 +108,8 @@ class Avaliacoes(Base):
         db_table = 'avaliacoes'
 
 
-def upload_image_coleta(instance, filename):
-    return f"{instance.id}-{filename}"
+##def upload_image_coleta(instance, filename):
+##    return f"{instance.id}-{filename}"
 
 
 class Coletas(Base):
@@ -130,12 +130,12 @@ class Coletas(Base):
         'Solicitacoes', models.DO_NOTHING, db_column='id_solicitacoes')
     id_pagamentos = models.ForeignKey(
         'Pagamentos', models.DO_NOTHING, db_column='id_pagamentos')
-    images = models.ImageField(
+   ## images = models.ImageField(
         # Função para fazer upload de imagem direto pro banco
-        upload_to=upload_image_coleta,
-        blank=True,
-        null=True
-    )
+   ##     upload_to=upload_image_coleta,
+   ##     blank=True,
+   ##     null=True
+    ##)
 
     class Meta:
         managed = False

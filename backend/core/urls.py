@@ -7,7 +7,7 @@ from rest_framework_simplejwt.views import (
 )
 # from django.conf.urls.static import static
 # from django.conf import settings
-# Precisa instalar biblioteca pillow (pip install pillow )
+
 
 # from . import admin
 from .views import (
@@ -78,5 +78,3 @@ urlpatterns = [
     path('v1/parceiros/', ParceirosApiView.as_view(), name='parceiros-list'),
 ]
 # +   static{settings.MEDIA_URL,document_root = settings.MEDIA_ROOT}
-# ta dando erro não sei se é por causa da biblioteca
-# ou se o import settings q ta dando tilt;

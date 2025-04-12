@@ -84,6 +84,12 @@ class Parceiros(Base):
         'Usuarios', models.DO_NOTHING, db_column='id_usuarios')
     cnpj = models.CharField(unique=True, max_length=20)
 
+    materiais = models.ManyToManyField(
+        'Materiais',
+        through='MateriaisParceiros',
+        related_name='parceiros'
+    )
+
     class Meta:
         managed = False
         db_table = 'parceiros'

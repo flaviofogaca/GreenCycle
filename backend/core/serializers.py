@@ -9,6 +9,7 @@ from .models import (
 )
 from django.core.validators import MinLengthValidator
 from .mixins import (
+    HideTimestampsMixin,
     ValidacaoCFPMixin,
     ValidacaoCNPJMixin,
     ValidacaoCEPMixin
@@ -52,6 +53,20 @@ class UsuarioCreateSerializer(ModelSerializer):
         usuario = Usuarios(**validated_data)
         usuario.save()
         return usuario
+
+
+class UsuarioRetrieveSerializer(HideTimestampsMixin, ModelSerializer):
+    class Meta:
+        model = Usuarios
+        fields = [
+            'id',
+            'usuario',
+            'nome',
+            'senha',
+            'email',
+            'id_endereco'
+        ]
+        depth = 1
 
 
 class ClienteComUsuarioCreateSerializer(ValidacaoCFPMixin, ModelSerializer):
@@ -199,6 +214,24 @@ class ClienteComUsuarioUpdateSerializer(ValidacaoCFPMixin, ModelSerializer):
         instance.save()
 
         return instance
+
+
+class ClienteComUsuarioRetrieveSerializer(
+    HideTimestampsMixin,
+    ModelSerializer
+):
+    id_usuarios = UsuarioCreateSerializer(read_only=True)
+
+    class Meta:
+        model = Clientes
+        fields = [
+            'id',
+            'id_usuarios',
+            'cpf',
+            'data_nascimento',
+            'sexo'
+        ]
+        depth = 0
 
 
 class ParceiroComUsuarioCreateSerializer(ValidacaoCNPJMixin, ModelSerializer):
@@ -374,6 +407,37 @@ class ParceiroComUsuarioUpdateSerializer(ValidacaoCNPJMixin, ModelSerializer):
         return instance
 
 
+class MateriaisSerializer(ModelSerializer):
+    class Meta:
+        model = Materiais
+        fields = [
+            'id',
+            'nome',
+            'descricao',
+            'preco',
+            'criado_em',
+            'atualizado_em',
+        ]
+
+
+class ParceiroComUsuarioRetrieveSerializer(
+    HideTimestampsMixin,
+    ModelSerializer
+):
+    id_usuarios = UsuarioCreateSerializer(read_only=True)
+    materiais = MateriaisSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Parceiros
+        fields = [
+            'id',
+            'id_usuarios',
+            'cnpj',
+            'materiais'
+        ]
+        depth = 1
+
+
 class EnderecoBuscaCEPSerializer(Serializer, ValidacaoCEPMixin):
     cep = CharField(max_length=15)
 
@@ -440,7 +504,7 @@ class EnderecoUpdateSerializer(ModelSerializer):
         ]
 
 
-class EnderecoRetrieveSerializer(ModelSerializer):
+class EnderecoRetrieveSerializer(HideTimestampsMixin, ModelSerializer):
     class Meta:
         model = Enderecos
         fields = [
@@ -451,9 +515,7 @@ class EnderecoRetrieveSerializer(ModelSerializer):
             'rua',
             'bairro',
             'numero',
-            'complemento',
-            'criado_em',
-            'atualizado_em'
+            'complemento'
         ]
 
 
@@ -487,19 +549,6 @@ class ColetasSerializer(ModelSerializer):
             'id_solicitacoes',
             'id_pagamentos',
             'images',  # Adicionado coluna Images
-            'criado_em',
-            'atualizado_em',
-        ]
-
-
-class MateriaisSerializer(ModelSerializer):
-    class Meta:
-        model = Materiais
-        fields = [
-            'id',
-            'nome',
-            'descricao',
-            'preco',
             'criado_em',
             'atualizado_em',
         ]
@@ -623,7 +672,7 @@ class PontosColetaUpdateSerializer(ModelSerializer):
         return instance
 
 
-class PontosColetaRetrieveSerializer(ModelSerializer):
+class PontosColetaRetrieveSerializer(HideTimestampsMixin, ModelSerializer):
     materiais = MateriaisSerializer(many=True, read_only=True)
 
     class Meta:
@@ -635,9 +684,7 @@ class PontosColetaRetrieveSerializer(ModelSerializer):
             'descricao',
             'horario_funcionamento',
             'id_parceiros',
-            'materiais',
-            'criado_em',
-            'atualizado_em'
+            'materiais'
         ]
         depth = 1
 

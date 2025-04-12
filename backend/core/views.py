@@ -13,12 +13,13 @@ from .models import (
     Parceiros, PontosColeta, Solicitacoes, Telefones, Usuarios
 )
 from .serializers import (
-    UsuarioCreateSerializer, ClienteComUsuarioCreateSerializer,
-    ClienteComUsuarioUpdateSerializer, ParceiroComUsuarioCreateSerializer,
-    ParceiroComUsuarioUpdateSerializer, AvaliacoesSerializer,
-    ColetasSerializer, MateriaisSerializer, EnderecoCreateSerializer,
-    EnderecoUpdateSerializer, EnderecoRetrieveSerializer,
-    EnderecoBuscaCEPSerializer,
+    UsuarioCreateSerializer, UsuarioRetrieveSerializer,
+    ClienteComUsuarioCreateSerializer, ClienteComUsuarioUpdateSerializer,
+    ClienteComUsuarioRetrieveSerializer, ParceiroComUsuarioCreateSerializer,
+    ParceiroComUsuarioUpdateSerializer, ParceiroComUsuarioRetrieveSerializer,
+    AvaliacoesSerializer, ColetasSerializer, MateriaisSerializer,
+    EnderecoCreateSerializer, EnderecoUpdateSerializer,
+    EnderecoRetrieveSerializer, EnderecoBuscaCEPSerializer,
     MateriaisParceirosSerializer, MateriaisPontosColetaSerializer,
     PagamentosSerializer, PontosColetaCreateSerializer,
     PontosColetaUpdateSerializer, PontosColetaRetrieveSerializer,
@@ -33,7 +34,12 @@ def home(request):
 # ViewSets
 class UsuariosCreateViewSet(viewsets.ModelViewSet):
     queryset = Usuarios.objects.all()
-    serializer_class = UsuarioCreateSerializer
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return UsuarioRetrieveSerializer
+        else:
+            return UsuarioCreateSerializer
 
     # def list(self, request, *args, **kwargs):
     #     cache_key = 'usuarios_list'
@@ -80,13 +86,16 @@ class UsuariosCreateViewSet(viewsets.ModelViewSet):
 
 
 class ClienteComUsuarioCreateViewSet(viewsets.ModelViewSet):
-    queryset = Clientes.objects.all()
-    # permission_classes = [IsAuthenticated]
+    queryset = Clientes.objects.all().select_related('id_usuarios')
 
     def get_serializer_class(self):
-        if self.action in ['update', 'partial_update']:
+        if self.action == 'retrieve':
+            return ClienteComUsuarioRetrieveSerializer
+        elif self.action in ['create']:
+            return ClienteComUsuarioCreateSerializer
+        elif self.action in ['update', 'partial_update']:
             return ClienteComUsuarioUpdateSerializer
-        return ClienteComUsuarioCreateSerializer
+        return ClienteComUsuarioRetrieveSerializer
 
     def create(self, request, *args, **kwargs):
         # Verifica se o email já está cadastrado
@@ -119,14 +128,38 @@ class ClienteComUsuarioCreateViewSet(viewsets.ModelViewSet):
             headers=headers
         )
 
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='por-usuario/(?P<usuario>[^/]+)'
+    )
+    def por_usuario(self, request, usuario=None):
+        try:
+            cliente = Clientes.objects.get(id_usuarios__usuario=usuario)
+            serializer = self.get_serializer(cliente)
+            return Response(serializer.data)
+        except Clientes.DoesNotExist:
+            return Response(
+                {'detail': 'Cliente não encontrado com este nome de usuário'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
 
 class ParceiroComUsuarioCreateViewSet(viewsets.ModelViewSet):
-    queryset = Parceiros.objects.all()
+    queryset = Parceiros.objects.all().select_related(
+        'id_usuarios'
+    ).prefetch_related(
+        'materiaisparceiros_set__id_materiais'
+    )
 
     def get_serializer_class(self):
-        if self.action in ['update', 'partial_update']:
+        if self.action == 'retrieve':
+            return ParceiroComUsuarioRetrieveSerializer
+        elif self.action in ['create']:
+            return ParceiroComUsuarioCreateSerializer
+        elif self.action in ['update', 'partial_update']:
             return ParceiroComUsuarioUpdateSerializer
-        return ParceiroComUsuarioCreateSerializer
+        return ParceiroComUsuarioRetrieveSerializer
 
     def create(self, request, *args, **kwargs):
         # Verifica se o email já está cadastrado
@@ -158,6 +191,22 @@ class ParceiroComUsuarioCreateViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED,
             headers=headers
         )
+
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='por-usuario/(?P<usuario>[^/]+)'
+    )
+    def por_usuario(self, request, usuario=None):
+        try:
+            parceiro = Parceiros.objects.get(id_usuarios__usuario=usuario)
+            serializer = self.get_serializer(parceiro)
+            return Response(serializer.data)
+        except Parceiros.DoesNotExist:
+            return Response(
+                {'detail': 'Parceiro não encontrado com este nome de usuário'},
+                status=status.HTTP_404_NOT_FOUND
+            )
     # permission_classes = [IsAuthenticated]
 
 

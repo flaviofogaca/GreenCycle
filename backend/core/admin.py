@@ -44,7 +44,7 @@ class ColetasAdmin(admin.ModelAdmin):
         'id_enderecos',
         'id_solicitacoes',
         'id_pagamentos',
-        'images',  # Adicionado coluna images
+        # 'images',  # Adicionado coluna images
         'criado_em',
         'atualizado_em',
     )

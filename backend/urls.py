@@ -14,6 +14,4 @@ urlpatterns = [
     path('v1/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('v1/', include('core.urls')),
     path('', home, name='home')
-]
-#+   static{settings.MEDIA_URL,document_root = settings.MEDIA_ROOT}
-## ta dando erro não sei se é por causa da biblioteca ou se o import settings q ta dando tilt;
+]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

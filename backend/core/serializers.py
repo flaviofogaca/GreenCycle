@@ -1,3 +1,4 @@
+from rest_framework import serializers
 from rest_framework.serializers import (
     ModelSerializer, CharField, PrimaryKeyRelatedField, DateField, Serializer,
     ValidationError
@@ -5,7 +6,7 @@ from rest_framework.serializers import (
 from .models import (
     Avaliacoes, Clientes, Coletas, Enderecos,
     Materiais, MateriaisParceiros, MateriaisPontosColeta, Pagamentos,
-    Parceiros, PontosColeta, Solicitacoes, Telefones, Usuarios
+    Parceiros, PontosColeta, Solicitacoes, Telefones, Usuarios,ImagemColetas
 )
 from django.core.validators import MinLengthValidator
 from .mixins import (
@@ -533,9 +534,20 @@ class AvaliacoesSerializer(ModelSerializer):
             'criado_em',
             'atualizado_em',
         ]
+class ImagemColetaSerializer(ModelSerializer):
+    class Meta:
+        model = ImagemColetas
+        fields = ['id', 'imagem', 'criado_em']
 
 
-class ColetasSerializer(ModelSerializer):
+class ColetasSerializer(serializers.ModelSerializer):
+    imagens = ImagemColetaSerializer(many=True, read_only=True)
+    imagens_upload = serializers.ListField(
+        child=serializers.ImageField(max_length=100000, allow_empty_file=False, use_url=False),
+        write_only=True,
+        required=False
+    )
+
     class Meta:
         model = Coletas
         fields = [
@@ -548,11 +560,11 @@ class ColetasSerializer(ModelSerializer):
             'id_enderecos',
             'id_solicitacoes',
             'id_pagamentos',
-            # 'images',
             'criado_em',
             'atualizado_em',
+            'imagens',
+            'imagens_upload'
         ]
-
 
 class MateriaisParceirosSerializer(ModelSerializer):
     class Meta:

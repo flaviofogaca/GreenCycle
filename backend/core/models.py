@@ -116,7 +116,7 @@ class Avaliacoes(Base):
 
 class ImagemColetas(models.Model):
     coleta = models.ForeignKey('Coletas', related_name='imagens_coletas', on_delete=models.CASCADE, verbose_name="Coleta")
-    imagem = models.ImageField(upload_to='coletas/%Y/%m/%d/', verbose_name="Imagem")
+    imagem = models.ImageField(upload_to='coletas/', verbose_name="Imagem")
     criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Data de criação")
 
     class Meta:

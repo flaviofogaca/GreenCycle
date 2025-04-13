@@ -242,8 +242,25 @@ class ColetasViewSet(viewsets.ModelViewSet):
     # permission_classes = [IsAuthenticated]
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context['request'] = self.request
+        context['request'] = self.request 
         return context
+    
+    @action(detail=True, methods=['post'], url_path='upload-imagem')
+    def upload_imagem(self, request, pk=None):
+        coleta = self.get_object()
+        if 'imagem' not in request.FILES:
+            return Response(
+                {'error': 'Nenhuma imagem enviada'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        imagem = request.FILES['imagem']
+        ImagemColetas.objects.create(coleta=coleta, imagem=imagem)
+        return Response(
+            {'status': 'Imagem adicionada com sucesso'},
+            status=status.HTTP_201_CREATED
+        )
+
 
 class MateriaisViewSet(viewsets.ModelViewSet):
     queryset = Materiais.objects.all()

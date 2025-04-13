@@ -541,7 +541,7 @@ class ImagemColetaSerializer(ModelSerializer):
 
 
 class ColetasSerializer(serializers.ModelSerializer):
-    imagens = ImagemColetaSerializer(many=True, read_only=True)
+    imagens_coletas = ImagemColetaSerializer(many=True, read_only=True)
     imagens_upload = serializers.ListField(
         child=serializers.ImageField(max_length=100000, allow_empty_file=False, use_url=False),
         write_only=True,
@@ -562,9 +562,31 @@ class ColetasSerializer(serializers.ModelSerializer):
             'id_pagamentos',
             'criado_em',
             'atualizado_em',
-            'imagens',
+            'imagens_coletas',
             'imagens_upload'
         ]
+       
+    def to_representation(self, instance):
+      
+        representation = super().to_representation(instance)
+    
+        representation['id_clientes'] = instance.id_clientes_id
+        representation['id_parceiros'] = instance.id_parceiros_id
+        representation['id_materiais'] = instance.id_materiais_id
+        representation['id_enderecos'] = instance.id_enderecos_id
+        representation['id_solicitacoes'] = instance.id_solicitacoes_id
+        representation['id_pagamentos'] = instance.id_pagamentos_id
+        
+        return representation
+
+    def create(self, validated_data):
+        imagens_data = validated_data.pop('imagens_upload', [])
+        coleta = Coletas.objects.create(**validated_data)
+        
+        for imagem in imagens_data:
+            ImagemColetas.objects.create(coleta=coleta, imagem=imagem)
+            
+        return coleta
 
 class MateriaisParceirosSerializer(ModelSerializer):
     class Meta:

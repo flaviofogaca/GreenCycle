@@ -23,7 +23,7 @@ O **GreenCycle** é uma plataforma que conecta cidadãos a pontos de coleta e pa
 
 **Backend:**
 
-Em desenvolvimento por mim e pelo @lucasdeinani
+Em desenvolvimento por mim, pelo [@lucasdeinani](https://github.com/lucasdeinani) e o [@vinisonaglio](https://github.com/ViniSonaglio)
 - Python 3.13
 - Django 5.1
 - Django REST Framework
@@ -32,7 +32,7 @@ Em desenvolvimento por mim e pelo @lucasdeinani
 
 **Frontend:**
 
-Repositório separado, em desenvolvimento por @DBalbinot/@DjStrips
+Repositório separado, em desenvolvimento por [@DBalbinot](https://github.com/DBalbinot)/[@DjStrips](https://github.com/DjStrips)
 
 - React (em andamento)
 - 

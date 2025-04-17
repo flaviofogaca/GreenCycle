@@ -547,25 +547,82 @@ class ColetasSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False
     )
+    
+    cliente_nome = serializers.SerializerMethodField()
+    parceiro_nome = serializers.SerializerMethodField()
+    material_nome = serializers.SerializerMethodField()
+    endereco_completo = serializers.SerializerMethodField()
+    valor_pagamento = serializers.SerializerMethodField()
+
+    id_clientes = serializers.PrimaryKeyRelatedField(read_only=True)
+    id_parceiros = serializers.PrimaryKeyRelatedField(read_only=True)
+    id_materiais = serializers.PrimaryKeyRelatedField(read_only=True)
+    id_enderecos = serializers.PrimaryKeyRelatedField(read_only=True)
+    id_pagamentos = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Coletas
         fields = [
             'id',
             'id_clientes',
+            'cliente_nome',
             'id_parceiros',
+            'parceiro_nome',
             'id_materiais',
+            'material_nome',
             'peso_material',
             'quantidade_material',
             'id_enderecos',
+            'endereco_completo',
             'id_solicitacoes',
             'id_pagamentos',
+            'valor_pagamento',
             'criado_em',
             'atualizado_em',
             'imagens_coletas',
             'imagens_upload'
         ]
-       
+
+    def get_cliente_nome(self, obj):
+        if obj.id_clientes and obj.id_clientes.id_usuarios:
+            return obj.id_clientes.id_usuarios.nome
+        return None
+
+    def get_parceiro_nome(self, obj):
+        if obj.id_parceiros and obj.id_parceiros.id_usuarios:
+            return obj.id_parceiros.id_usuarios.nome
+        return None
+
+    def get_material_nome(self, obj):
+        if obj.id_materiais:
+            return obj.id_materiais.nome
+        return None
+
+    def get_valor_pagamento(self, obj):
+        if obj.id_pagamentos:
+            return obj.id_pagamentos.valor_pagamento
+        return None
+    
+    def get_endereco_completo(self, obj):
+        if obj.id_enderecos:
+            endereco = obj.id_enderecos
+            partes = [
+                endereco.rua,
+                str(endereco.numero),
+                endereco.bairro,
+                endereco.cidade
+            ]
+            
+            partes = [p for p in partes if p]
+            
+            endereco_str = ", ".join(partes)
+            
+            if endereco.complemento:
+                endereco_str += f" - {endereco.complemento}"
+            
+            return endereco_str
+        return None
+
     def to_representation(self, instance):
       
         representation = super().to_representation(instance)
@@ -595,7 +652,6 @@ class MateriaisParceirosSerializer(ModelSerializer):
             'id_materiais',
             'id_parceiros',
         ]
-
 
 class MateriaisPontosColetaSerializer(ModelSerializer):
     class Meta:

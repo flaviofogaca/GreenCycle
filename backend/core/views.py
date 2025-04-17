@@ -237,7 +237,15 @@ class AvaliacoesViewSet(viewsets.ModelViewSet):
 
 
 class ColetasViewSet(viewsets.ModelViewSet):
-    queryset = Coletas.objects.all().prefetch_related('imagens_coletas')
+    queryset = Coletas.objects.all().select_related(
+        'id_clientes__id_usuarios',
+        'id_parceiros__id_usuarios',
+        'id_materiais',
+        'id_enderecos',
+        'id_solicitacoes',
+        'id_pagamentos'
+    ).prefetch_related('imagens_coletas')
+    
     serializer_class = ColetasSerializer
     # permission_classes = [IsAuthenticated]
     def get_serializer_context(self):

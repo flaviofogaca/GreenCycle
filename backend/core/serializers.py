@@ -553,12 +553,14 @@ class ColetasSerializer(serializers.ModelSerializer):
     material_nome = serializers.SerializerMethodField()
     endereco_completo = serializers.SerializerMethodField()
     valor_pagamento = serializers.SerializerMethodField()
+    status_solicitacoes = serializers.SerializerMethodField()
 
     id_clientes = serializers.PrimaryKeyRelatedField(read_only=True)
     id_parceiros = serializers.PrimaryKeyRelatedField(read_only=True)
     id_materiais = serializers.PrimaryKeyRelatedField(read_only=True)
     id_enderecos = serializers.PrimaryKeyRelatedField(read_only=True)
     id_pagamentos = serializers.PrimaryKeyRelatedField(read_only=True)
+    id_solicitacoes = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Coletas
@@ -575,6 +577,7 @@ class ColetasSerializer(serializers.ModelSerializer):
             'id_enderecos',
             'endereco_completo',
             'id_solicitacoes',
+            'status_solicitacoes',
             'id_pagamentos',
             'valor_pagamento',
             'criado_em',
@@ -603,6 +606,11 @@ class ColetasSerializer(serializers.ModelSerializer):
             return obj.id_pagamentos.valor_pagamento
         return None
     
+    def get_status_solicitacoes(self, obj):
+        if obj.id_solicitacoes:
+            return obj.id_solicitacoes.estado_solicitacao
+        return None
+
     def get_endereco_completo(self, obj):
         if obj.id_enderecos:
             endereco = obj.id_enderecos

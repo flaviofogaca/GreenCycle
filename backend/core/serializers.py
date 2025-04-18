@@ -12,7 +12,8 @@ from django.core.validators import MinLengthValidator
 from .mixins import (
     ValidacaoCFPMixin,
     ValidacaoCNPJMixin,
-    ValidacaoCEPMixin
+    ValidacaoCEPMixin,
+    GeocodingMixin
 )
 import requests
 # from django.contrib.auth.hashers import make_password
@@ -450,7 +451,11 @@ class EnderecoBuscaCEPSerializer(Serializer, ValidacaoCEPMixin):
         }
 
 
-class EnderecoCreateSerializer(ModelSerializer, ValidacaoCEPMixin):
+class EnderecoCreateSerializer(
+    ModelSerializer,
+    ValidacaoCEPMixin,
+    GeocodingMixin
+):
     cep = CharField(max_length=15)
 
     class Meta:
@@ -469,17 +474,89 @@ class EnderecoCreateSerializer(ModelSerializer, ValidacaoCEPMixin):
             'id',
         ]
 
-    def validate_cep(self, value):
-        return self.validar_cep(value)
+    def create(self, validated_data):
+        # Monta o endereço completo para geocoding
+        endereco_completo = (
+            f"{validated_data.get('rua')}, {validated_data.get('numero')}, "
+            f"{validated_data.get('bairro')}, {validated_data.get('cidade')}, "
+            f"{validated_data.get('estado')}, {validated_data.get('cep')}"
+        )
+
+        # Obtém as coordenadas
+        coordenadas = self.get_lat_lon(endereco_completo)
+
+        if not coordenadas:
+            # Se não conseguir geocodificar,
+            # usa coordenadas padrão (centro do estado)
+            coordenadas = (-15.7801, -47.9292)  # Coordenadas de Brasília
+
+        validated_data['latitude'] = coordenadas[0]
+        validated_data['longitude'] = coordenadas[1]
+
+        return super().create(validated_data)
 
 
-class EnderecoUpdateSerializer(ModelSerializer):
+class EnderecoUpdateSerializer(
+    ModelSerializer,
+    ValidacaoCEPMixin,
+    GeocodingMixin
+):
+    cep = CharField(max_length=15, required=False)
+    estado = CharField(max_length=50, required=False)
+    cidade = CharField(max_length=50, required=False)
+    rua = CharField(max_length=50, required=False)
+    bairro = CharField(max_length=50, required=False)
+
     class Meta:
         model = Enderecos
         fields = [
+            'cep',
+            'estado',
+            'cidade',
+            'rua',
+            'bairro',
             'numero',
             'complemento'
         ]
+
+    def update(self, instance, validated_data):
+        # Verifica se algum campo relevante para geocoding foi alterado
+        campos_geocoding = [
+            'cep', 'estado', 'cidade', 'rua', 'bairro', 'numero'
+        ]
+        precisa_geocodificar = any(
+            campo in validated_data for campo in campos_geocoding
+        )
+
+        if precisa_geocodificar:
+            # Usa os novos valores ou mantém os existentes
+            endereco_completo = (
+                f"{validated_data.get('rua', instance.rua)}, "
+                f"{validated_data.get('numero', instance.numero)}, "
+                f"{validated_data.get('bairro', instance.bairro)}, "
+                f"{validated_data.get('cidade', instance.cidade)}, "
+                f"{validated_data.get('estado', instance.estado)}, "
+                f"{validated_data.get('cep', instance.cep)}"
+            )
+
+            coordenadas = self.get_lat_lon(endereco_completo)
+
+            if coordenadas:
+                instance.latitude = coordenadas[0]
+                instance.longitude = coordenadas[1]
+            elif not instance.latitude or not instance.longitude:
+                # Se não conseguir geocodificar e
+                # não tiver coordenadas existentes
+                coordenadas = (-15.7801, -47.9292)  # Coordenadas de Brasília
+                instance.latitude = coordenadas[0]
+                instance.longitude = coordenadas[1]
+
+        # Atualiza os outros campos normalmente
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
 
 
 class EnderecoRetrieveSerializer(ModelSerializer):
@@ -493,7 +570,9 @@ class EnderecoRetrieveSerializer(ModelSerializer):
             'rua',
             'bairro',
             'numero',
-            'complemento'
+            'complemento',
+            'latitude',
+            'longitude',
         ]
 
 

@@ -1,5 +1,8 @@
 import re
 from django.core.exceptions import ValidationError
+import requests
+from time import sleep
+from urllib.parse import quote
 
 
 class ValidacaoCFPMixin:
@@ -79,3 +82,52 @@ class ValidacaoCEPMixin:
 
         # Retorna o CEP formatado como string numérica
         return cep_numerico
+
+
+class GeocodingMixin:
+    @staticmethod
+    def get_lat_lon(endereco_completo):
+        """
+        Obtém latitude e longitude usando a API Nominatim do OpenStreetMap
+
+        Args:
+            endereco_completo (str): Endereço no formato 
+            "Rua, Número, Bairro, Cidade, Estado, CEP"
+
+        Returns:
+            tuple: (latitude, longitude) ou None se não encontrar
+        """
+        try:
+            # Formata o endereço para URL
+            endereco_formatado = quote(endereco_completo)
+
+            # URL da API Nominatim
+            url = f"https://nominatim.openstreetmap.org/" \
+                f"search?format=json&q={endereco_formatado}"
+
+            # Headers para identificar corretamente a aplicação
+            headers = {
+                'User-Agent': 'GreenCycleApp/1.0 (seu-email@exemplo.com)'
+            }
+
+            # Faz a requisição com timeout
+            response = requests.get(url, headers=headers, timeout=10)
+
+            # Respeita o rate limit da API (1 segundo entre requisições)
+            sleep(1)
+
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    # Retorna a primeira ocorrência (mais relevante)
+                    return (float(data[0]['lat']), float(data[0]['lon']))
+
+            return None
+
+        except requests.exceptions.RequestException as e:
+            # Logar este erro em produção
+            print(f"Erro ao acessar API Nominatim: {e}")
+            return None
+        except (KeyError, IndexError, ValueError) as e:
+            print(f"Erro ao processar resposta da API: {e}")
+            return None

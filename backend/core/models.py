@@ -159,6 +159,8 @@ class Enderecos(Base):
     rua = models.CharField(max_length=50)
     numero = models.SmallIntegerField()
     complemento = models.CharField(max_length=100)
+    latitude = models.FloatField()
+    longitude = models.FloatField()
 
     class Meta:
         managed = False

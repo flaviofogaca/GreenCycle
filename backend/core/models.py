@@ -115,13 +115,16 @@ class Avaliacoes(Base):
 
 
 class ImagemColetas(models.Model):
-    coleta = models.ForeignKey('Coletas', related_name='imagens_coletas', on_delete=models.CASCADE, verbose_name="Coleta")
+    coleta = models.ForeignKey('Coletas', related_name='imagens_coletas',
+                               on_delete=models.CASCADE, verbose_name="Coleta")
     imagem = models.ImageField(upload_to='coletas/', verbose_name="Imagem")
-    criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Data de criação")
+    criado_em = models.DateTimeField(
+        auto_now_add=True, verbose_name="Data de criação")
 
     class Meta:
         verbose_name = "Imagem da Coleta"
         verbose_name_plural = "Imagens da Coleta"
+
 
 class Coletas(Base):
     id = models.SmallAutoField(primary_key=True)
@@ -141,9 +144,11 @@ class Coletas(Base):
         'Solicitacoes', models.DO_NOTHING, db_column='id_solicitacoes')
     id_pagamentos = models.ForeignKey(
         'Pagamentos', models.DO_NOTHING, db_column='id_pagamentos')
+
     class Meta:
         managed = False
         db_table = 'coletas'
+
 
 class Enderecos(Base):
     id = models.SmallAutoField(primary_key=True)

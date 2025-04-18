@@ -6,7 +6,7 @@ from rest_framework.serializers import (
 from .models import (
     Avaliacoes, Clientes, Coletas, Enderecos,
     Materiais, MateriaisParceiros, MateriaisPontosColeta, Pagamentos,
-    Parceiros, PontosColeta, Solicitacoes, Telefones, Usuarios,ImagemColetas
+    Parceiros, PontosColeta, Solicitacoes, Telefones, Usuarios, ImagemColetas
 )
 from django.core.validators import MinLengthValidator
 from .mixins import (
@@ -534,6 +534,8 @@ class AvaliacoesSerializer(ModelSerializer):
             'criado_em',
             'atualizado_em',
         ]
+
+
 class ImagemColetaSerializer(ModelSerializer):
     class Meta:
         model = ImagemColetas
@@ -543,11 +545,12 @@ class ImagemColetaSerializer(ModelSerializer):
 class ColetasSerializer(serializers.ModelSerializer):
     imagens_coletas = ImagemColetaSerializer(many=True, read_only=True)
     imagens_upload = serializers.ListField(
-        child=serializers.ImageField(max_length=100000, allow_empty_file=False, use_url=False),
+        child=serializers.ImageField(
+            max_length=100000, allow_empty_file=False, use_url=False),
         write_only=True,
         required=False
     )
-    
+
     cliente_nome = serializers.SerializerMethodField()
     parceiro_nome = serializers.SerializerMethodField()
     material_nome = serializers.SerializerMethodField()
@@ -605,7 +608,7 @@ class ColetasSerializer(serializers.ModelSerializer):
         if obj.id_pagamentos:
             return obj.id_pagamentos.valor_pagamento
         return None
-    
+
     def get_status_solicitacoes(self, obj):
         if obj.id_solicitacoes:
             return obj.id_solicitacoes.estado_solicitacao
@@ -620,38 +623,39 @@ class ColetasSerializer(serializers.ModelSerializer):
                 endereco.bairro,
                 endereco.cidade
             ]
-            
+
             partes = [p for p in partes if p]
-            
+
             endereco_str = ", ".join(partes)
-            
+
             if endereco.complemento:
                 endereco_str += f" - {endereco.complemento}"
-            
+
             return endereco_str
         return None
 
     def to_representation(self, instance):
-      
+
         representation = super().to_representation(instance)
-    
+
         representation['id_clientes'] = instance.id_clientes_id
         representation['id_parceiros'] = instance.id_parceiros_id
         representation['id_materiais'] = instance.id_materiais_id
         representation['id_enderecos'] = instance.id_enderecos_id
         representation['id_solicitacoes'] = instance.id_solicitacoes_id
         representation['id_pagamentos'] = instance.id_pagamentos_id
-        
+
         return representation
 
     def create(self, validated_data):
         imagens_data = validated_data.pop('imagens_upload', [])
         coleta = Coletas.objects.create(**validated_data)
-        
+
         for imagem in imagens_data:
             ImagemColetas.objects.create(coleta=coleta, imagem=imagem)
-            
+
         return coleta
+
 
 class MateriaisParceirosSerializer(ModelSerializer):
     class Meta:
@@ -660,6 +664,7 @@ class MateriaisParceirosSerializer(ModelSerializer):
             'id_materiais',
             'id_parceiros',
         ]
+
 
 class MateriaisPontosColetaSerializer(ModelSerializer):
     class Meta:

@@ -2,14 +2,6 @@ import re
 from django.core.exceptions import ValidationError
 
 
-class HideTimestampsMixin:
-    def get_field_names(self, declared_fields, info):
-        fields = super().get_field_names(declared_fields, info)  # type: ignore
-        exclude_fields = {'criado_em', 'atualizado_em'}
-        print(fields)
-        return [field for field in fields if field not in exclude_fields]
-
-
 class ValidacaoCFPMixin:
     @staticmethod
     # Lembrar que no front deve-se criar uma máscara para já

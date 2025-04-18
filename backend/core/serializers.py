@@ -10,7 +10,6 @@ from .models import (
 )
 from django.core.validators import MinLengthValidator
 from .mixins import (
-    HideTimestampsMixin,
     ValidacaoCFPMixin,
     ValidacaoCNPJMixin,
     ValidacaoCEPMixin
@@ -39,8 +38,6 @@ class UsuarioCreateSerializer(ModelSerializer):
             'email',
             'senha',
             'id_endereco',
-            'criado_em',
-            'atualizado_em',
         ]
         extra_kwargs = {
             'senha': {'write_only': True},
@@ -56,7 +53,7 @@ class UsuarioCreateSerializer(ModelSerializer):
         return usuario
 
 
-class UsuarioRetrieveSerializer(HideTimestampsMixin, ModelSerializer):
+class UsuarioRetrieveSerializer(ModelSerializer):
     class Meta:
         model = Usuarios
         fields = [
@@ -108,8 +105,6 @@ class ClienteComUsuarioCreateSerializer(ValidacaoCFPMixin, ModelSerializer):
             'cpf',              # Campo do cliente
             'data_nascimento',  # Campo do cliente
             'sexo',             # Campo do cliente
-            'criado_em',        # Campo do cliente / usuário
-            'atualizado_em',    # Campo do cliente / usuário
             'nome',             # Campo do usuário
             'email',            # Campo do usuário
             'senha',            # Campo do usuário
@@ -118,8 +113,6 @@ class ClienteComUsuarioCreateSerializer(ValidacaoCFPMixin, ModelSerializer):
         read_only_fields = [
             'id',
             'id_usuarios',
-            'criado_em',
-            'atualizado_em'
         ]
 
     def validate_cpf(self, value):
@@ -217,10 +210,7 @@ class ClienteComUsuarioUpdateSerializer(ValidacaoCFPMixin, ModelSerializer):
         return instance
 
 
-class ClienteComUsuarioRetrieveSerializer(
-    HideTimestampsMixin,
-    ModelSerializer
-):
+class ClienteComUsuarioRetrieveSerializer(ModelSerializer):
     id_usuarios = UsuarioCreateSerializer(read_only=True)
 
     class Meta:
@@ -276,8 +266,6 @@ class ParceiroComUsuarioCreateSerializer(ValidacaoCNPJMixin, ModelSerializer):
             'id_usuarios',    # Campo do usuário
             'usuario',        # Campo do usuário
             'cnpj',           # Campo do parceiro
-            'criado_em',      # Campo do parceiro / usuário
-            'atualizado_em',  # Campo do parceiro / usuário
             'nome',           # Campo do usuário
             'email',          # Campo do usuário
             'senha',          # Campo do usuário
@@ -287,8 +275,6 @@ class ParceiroComUsuarioCreateSerializer(ValidacaoCNPJMixin, ModelSerializer):
         read_only_fields = [
             'id',
             'id_usuarios',
-            'criado_em',
-            'atualizado_em'
         ]
 
     def validate_cnpj(self, value):
@@ -416,15 +402,10 @@ class MateriaisSerializer(ModelSerializer):
             'nome',
             'descricao',
             'preco',
-            'criado_em',
-            'atualizado_em',
         ]
 
 
-class ParceiroComUsuarioRetrieveSerializer(
-    HideTimestampsMixin,
-    ModelSerializer
-):
+class ParceiroComUsuarioRetrieveSerializer(ModelSerializer):
     id_usuarios = UsuarioCreateSerializer(read_only=True)
     materiais = MateriaisSerializer(many=True, read_only=True)
 
@@ -483,13 +464,9 @@ class EnderecoCreateSerializer(ModelSerializer, ValidacaoCEPMixin):
             'bairro',
             'numero',
             'complemento',
-            'criado_em',
-            'atualizado_em'
         ]
         read_only_fields = [
             'id',
-            'criado_em',
-            'atualizado_em'
         ]
 
     def validate_cep(self, value):
@@ -505,7 +482,7 @@ class EnderecoUpdateSerializer(ModelSerializer):
         ]
 
 
-class EnderecoRetrieveSerializer(HideTimestampsMixin, ModelSerializer):
+class EnderecoRetrieveSerializer(ModelSerializer):
     class Meta:
         model = Enderecos
         fields = [
@@ -531,8 +508,6 @@ class AvaliacoesSerializer(ModelSerializer):
             'descricao_parceiros',
             'nota_clientes',
             'descricao_clientes',
-            'criado_em',
-            'atualizado_em',
         ]
 
 
@@ -683,8 +658,6 @@ class PagamentosSerializer(ModelSerializer):
             'valor_pagamento',
             'saldo_pagamento',
             'estado_pagamento',
-            'criado_em',
-            'atualizado_em',
         ]
 
 
@@ -706,8 +679,6 @@ class PontosColetaCreateSerializer(ModelSerializer):
             'horario_funcionamento',
             'id_parceiros',
             'materiais',
-            'criado_em',
-            'atualizado_em'
         ]
         extra_kwargs = {
             'id_enderecos': {'required': True},
@@ -775,7 +746,7 @@ class PontosColetaUpdateSerializer(ModelSerializer):
         return instance
 
 
-class PontosColetaRetrieveSerializer(HideTimestampsMixin, ModelSerializer):
+class PontosColetaRetrieveSerializer(ModelSerializer):
     materiais = MateriaisSerializer(many=True, read_only=True)
 
     class Meta:
@@ -807,8 +778,6 @@ class SolicitacoesSerializer(ModelSerializer):
             'latitude',
             'longitude',
             'finalizado_em',
-            'criado_em',
-            'atualizado_em',
         ]
 
 
@@ -818,6 +787,4 @@ class TelefonesSerializer(ModelSerializer):
         fields = [
             'id_usuarios',
             'numero',
-            'criado_em',
-            'atualizado_em',
         ]

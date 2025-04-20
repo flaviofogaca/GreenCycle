@@ -827,6 +827,7 @@ class PontosColetaUpdateSerializer(ModelSerializer):
 
 class PontosColetaRetrieveSerializer(ModelSerializer):
     materiais = MateriaisSerializer(many=True, read_only=True)
+    id_parceiros = ParceiroComUsuarioCreateSerializer()
 
     class Meta:
         model = PontosColeta
@@ -841,10 +842,13 @@ class PontosColetaRetrieveSerializer(ModelSerializer):
         ]
         depth = 1
 
-    # def get_materiais(self, obj):
-    #     relacionamentos = obj.materiaispontoscoleta_set.all()
-    #     materiais = [rel.id_materiais for rel in relacionamentos]
-    #     return MateriaisSerializer(materiais, many=True).data
+    def get_id_parceiros(self, obj):
+        #  Método customizado para serializar o parceiro sem materiais
+        return {
+            'id': obj.id_parceiros.id,
+            'cnpj': obj.id_parceiros.cnpj,
+            'id_usuarios': obj.id_parceiros.id_usuarios,
+        }
 
 
 class SolicitacoesSerializer(ModelSerializer):

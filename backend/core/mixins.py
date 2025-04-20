@@ -91,7 +91,7 @@ class GeocodingMixin:
         Obtém latitude e longitude usando a API Nominatim do OpenStreetMap
 
         Args:
-            endereco_completo (str): Endereço no formato 
+            endereco_completo (str): Endereço no formato
             "Rua, Número, Bairro, Cidade, Estado, CEP"
 
         Returns:

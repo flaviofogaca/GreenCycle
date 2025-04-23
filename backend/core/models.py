@@ -34,9 +34,9 @@ class Base(models.Model):
 class Usuarios(Base):
     id = models.SmallAutoField(primary_key=True)
     nome = models.CharField(max_length=100)
-    usuario = models.CharField(max_length=100)
+    usuario = models.CharField(max_length=100) #talvez usar unique=True ? já que tbm é usado no login, deve ser único
     email = models.CharField(max_length=100, blank=True, null=True)
-    senha = models.TextField()
+    senha = models.TextField() # futuro usar django.contrib.auth.hashers
     id_endereco = models.ForeignKey(
         'Enderecos',
         models.DO_NOTHING,
@@ -71,7 +71,14 @@ class Clientes(Base):
     )
     cpf = models.CharField(unique=True, max_length=15)
     data_nascimento = models.DateField()
-    sexo = models.CharField(max_length=1)
+    sexo = models.CharField(max_length=1) #talvez adicionar opção da escolha e manter o limite de um caractere
+    #exemplo
+    #Sexo_choices = [
+    #   ('M', 'Masculino'),
+    #   ('F', 'Feminino'),
+    #   ('O', 'Outro'),
+    #]
+    #sexo = models.CharField(max_length=1, choices=Sexo_choices)
 
     class Meta:
         managed = False
@@ -158,7 +165,7 @@ class Enderecos(Base):
     bairro = models.CharField(max_length=50)
     rua = models.CharField(max_length=50)
     numero = models.SmallIntegerField()
-    complemento = models.CharField(max_length=100)
+    complemento = models.CharField(max_length=100, blank=True, null=True)
     latitude = models.FloatField()
     longitude = models.FloatField()
 

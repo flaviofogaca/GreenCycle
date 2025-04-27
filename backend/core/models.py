@@ -129,6 +129,8 @@ class ImagemColetas(models.Model):
         auto_now_add=True, verbose_name="Data de criação")
 
     class Meta:
+        managed = False  
+        db_table = 'imagem_coletas' 
         verbose_name = "Imagem da Coleta"
         verbose_name_plural = "Imagens da Coleta"
 

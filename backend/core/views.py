@@ -17,7 +17,7 @@ from .serializers import (
     ClienteComUsuarioCreateSerializer, ClienteComUsuarioUpdateSerializer,
     ClienteComUsuarioRetrieveSerializer, ParceiroComUsuarioCreateSerializer,
     ParceiroComUsuarioUpdateSerializer, ParceiroComUsuarioRetrieveSerializer,
-    AvaliacoesSerializer, ColetasSerializer, MateriaisSerializer,
+    AvaliacoesSerializer, ColetasRetrieveSerializer, ColetasCreateUpdateSerializer, MateriaisSerializer,
     EnderecoCreateSerializer, EnderecoUpdateSerializer,
     EnderecoRetrieveSerializer, EnderecoBuscaCEPSerializer,
     MateriaisParceirosSerializer, MateriaisPontosColetaSerializer,
@@ -246,8 +246,10 @@ class ColetasViewSet(viewsets.ModelViewSet):
         'id_pagamentos'
     ).prefetch_related('imagens_coletas')
 
-    serializer_class = ColetasSerializer
-    # permission_classes = [IsAuthenticated]
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return ColetasCreateUpdateSerializer
+        return ColetasRetrieveSerializer
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

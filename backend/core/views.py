@@ -237,14 +237,21 @@ class AvaliacoesViewSet(viewsets.ModelViewSet):
 
 
 class ColetasViewSet(viewsets.ModelViewSet):
-    queryset = Coletas.objects.all().select_related(
-        'id_clientes__id_usuarios',
-        'id_parceiros__id_usuarios',
-        'id_materiais',
-        'id_enderecos',
-        'id_solicitacoes',
-        'id_pagamentos'
-    ).prefetch_related('imagens_coletas')
+    def get_queryset(self):
+        queryset = Coletas.objects.all().select_related(
+            'id_clientes__id_usuarios',
+            'id_parceiros__id_usuarios',
+            'id_materiais',
+            'id_enderecos',
+            'id_solicitacoes',
+            'id_pagamentos'
+        ).prefetch_related('imagens_coletas')
+
+        id_clientes = self.request.query_params.get('id_clientes')
+        if id_clientes:
+            queryset = queryset.filter(id_clientes=id_clientes)
+
+        return queryset
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -271,6 +278,21 @@ class ColetasViewSet(viewsets.ModelViewSet):
             {'status': 'Imagem adicionada com sucesso'},
             status=status.HTTP_201_CREATED
         )
+
+    def get_queryset(self):
+        queryset = Coletas.objects.all().select_related(
+            'id_clientes__id_usuarios',
+            'id_parceiros__id_usuarios',
+            'id_materiais',
+            'id_enderecos',
+            'id_solicitacoes',
+            'id_pagamentos'
+        ).prefetch_related('imagens_coletas')
+
+        id_clientes = self.request.query_params.get('id_clientes', None)
+        if id_clientes is not None:
+            queryset = queryset.filter(id_clientes__id_usuarios=id_clientes)
+        return queryset
 
 
 class MateriaisViewSet(viewsets.ModelViewSet):

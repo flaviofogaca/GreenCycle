@@ -598,32 +598,36 @@ class ImagemColetaSerializer(ModelSerializer):
 
 class ColetasRetrieveSerializer(serializers.ModelSerializer):
     imagens_coletas = ImagemColetaSerializer(many=True, read_only=True)
-    
+
     cliente_nome = serializers.SerializerMethodField()
+    cliente_id = serializers.SerializerMethodField()
     parceiro_nome = serializers.SerializerMethodField()
     material_nome = serializers.SerializerMethodField()
+    id_materiais = serializers.SerializerMethodField()
     endereco_completo = serializers.SerializerMethodField()
+    id_enderecos = serializers.SerializerMethodField()
     valor_pagamento = serializers.SerializerMethodField()
     status_solicitacoes = serializers.SerializerMethodField()
+    id_solicitacoes = serializers.SerializerMethodField()
+    id_pagamentos = serializers.SerializerMethodField()
 
     class Meta:
         model = Coletas
         fields = [
             'id',
-            #'id_clientes',
+            'cliente_id',
             'cliente_nome',
-            #'id_parceiros',
             'parceiro_nome',
-           # 'id_materiais',
             'material_nome',
+            'id_materiais',
             'peso_material',
             'quantidade_material',
-           # 'id_enderecos',
             'endereco_completo',
-           # 'id_solicitacoes',
+            'id_enderecos',
+            'id_solicitacoes',
             'status_solicitacoes',
-           # 'id_pagamentos',
             'valor_pagamento',
+            'id_pagamentos',
             'criado_em',
             'atualizado_em',
             'imagens_coletas'
@@ -633,6 +637,11 @@ class ColetasRetrieveSerializer(serializers.ModelSerializer):
     def get_cliente_nome(self, obj):
         if obj.id_clientes and obj.id_clientes.id_usuarios:
             return obj.id_clientes.id_usuarios.nome
+        return None
+
+    def get_cliente_id(self, obj):
+        if obj.id_clientes and obj.id_clientes.id_usuarios:
+            return obj.id_clientes.id_usuarios.id
         return None
 
     def get_parceiro_nome(self, obj):
@@ -645,14 +654,9 @@ class ColetasRetrieveSerializer(serializers.ModelSerializer):
             return obj.id_materiais.nome
         return None
 
-    def get_valor_pagamento(self, obj):
-        if obj.id_pagamentos:
-            return obj.id_pagamentos.valor_pagamento
-        return None
-
-    def get_status_solicitacoes(self, obj):
-        if obj.id_solicitacoes:
-            return obj.id_solicitacoes.estado_solicitacao
+    def get_id_materiais(self, obj):
+        if obj.id_materiais:
+            return obj.id_materiais.id
         return None
 
     def get_endereco_completo(self, obj):
@@ -667,9 +671,35 @@ class ColetasRetrieveSerializer(serializers.ModelSerializer):
             partes = [p for p in partes if p]
             endereco_str = ", ".join(partes)
             if endereco.complemento:
-                endereco_str += f" - {endereco.complemento}"
+                endereco_str += f" - " + endereco.complemento
             return endereco_str
         return None
+
+    def get_id_enderecos(self, obj):
+        if obj.id_enderecos:
+            return obj.id_enderecos.id
+        return None
+
+    def get_valor_pagamento(self, obj):
+        if obj.id_pagamentos:
+            return obj.id_pagamentos.valor_pagamento
+        return None
+
+    def get_status_solicitacoes(self, obj):
+        if obj.id_solicitacoes:
+            return obj.id_solicitacoes.estado_solicitacao
+        return None
+
+    def get_id_solicitacoes(self, obj):
+        if obj.id_solicitacoes:
+            return obj.id_solicitacoes.id
+        return None
+
+    def get_id_pagamentos(self, obj):
+        if obj.id_pagamentos:
+            return obj.id_pagamentos.id
+        return None
+
 
 class SolicitacaoCreateSerializer(serializers.ModelSerializer):
     class Meta:

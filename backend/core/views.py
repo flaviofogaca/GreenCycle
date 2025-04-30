@@ -7,6 +7,7 @@ from rest_framework.response import Response
 # from rest_framework.decorators import action
 from django.core.cache import cache
 from django.http import JsonResponse
+from django.db.models import Prefetch
 from .models import (
     Avaliacoes, Clientes, Coletas, Enderecos,
     Materiais, MateriaisParceiros, MateriaisPontosColeta, Pagamentos,
@@ -320,7 +321,15 @@ class PagamentosViewSet(viewsets.ModelViewSet):
 
 
 class PontosColetaViewSet(viewsets.ModelViewSet):
-    queryset = PontosColeta.objects.all().prefetch_related('materiais')
+    queryset = PontosColeta.objects.all().select_related(
+        'id_enderecos',
+        'id_parceiros',
+        'id_parceiros__id_usuarios'
+    ).prefetch_related(
+        Prefetch('materiais', queryset=Materiais.objects.only('nome', 'descricao')),
+        'id_parceiros__id_usuarios__telefones'
+    )  
+
 
     def get_serializer_class(self):
         if self.action == 'create':

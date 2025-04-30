@@ -929,32 +929,71 @@ class PontosColetaUpdateSerializer(ModelSerializer):
 
         return instance
 
+class MateriaisSimplesSerializer(ModelSerializer):
+    class Meta:
+        model = Materiais
+        fields = ['nome', 'descricao'] 
+
+class MateriaisSimplesPCSerializer(ModelSerializer):
+    class Meta:
+        model = Materiais
+        fields = ['nome', 'descricao'] 
+
+class EnderecoSimplesPCSerializer(ModelSerializer):
+    endereco_completo = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Enderecos
+        fields = ['endereco_completo', 'latitude', 'longitude']
+    
+    def get_endereco_completo(self, obj):
+        partes = [
+            obj.rua,
+            str(obj.numero),
+            obj.bairro,
+            obj.cidade,
+            obj.estado
+        ]
+        return ', '.join(filter(None, partes))
 
 class PontosColetaRetrieveSerializer(ModelSerializer):
-    materiais = MateriaisSerializer(many=True, read_only=True)
-    id_parceiros = ParceiroComUsuarioCreateSerializer()
-
+    materiais = MateriaisSimplesPCSerializer(many=True, read_only=True)
+   # id_parceiros = ParceiroComUsuarioCreateSerializer()
+    telefone_parceiro = serializers.SerializerMethodField()
+    endereco = EnderecoSimplesPCSerializer(source='id_enderecos', read_only=True)
+    
     class Meta:
         model = PontosColeta
         fields = [
             'id',
             'nome',
-            'id_enderecos',
+            'endereco',
             'descricao',
             'horario_funcionamento',
-            'id_parceiros',
+    #        'id_parceiros',
+            'telefone_parceiro',
             'materiais'
         ]
-        depth = 1
+     
+    # ID_parceiro não utilizado pelo Front, removido mas mantido caso precise utilizar
+  #  def get_id_parceiros(self, obj):
+  #      if obj.id_parceiros:
+  #          parceiro = obj.id_parceiros
+  #          return {
+  #              'id': parceiro.id,
+  #               'cnpj': parceiro.cnpj,
+  #              'nome_parceiro': parceiro.id_usuarios.nome if hasattr(parceiro, 'id_usuarios') and parceiro.id_usuarios else None
+  #          }
+  #      return None
 
-    def get_id_parceiros(self, obj):
-        #  Método customizado para serializar o parceiro sem materiais
-        return {
-            'id': obj.id_parceiros.id,
-            'cnpj': obj.id_parceiros.cnpj,
-            'id_usuarios': obj.id_parceiros.id_usuarios,
-        }
-
+    def get_telefone_parceiro(self, obj):
+        if obj.id_parceiros and obj.id_parceiros.id_usuarios:
+            try:
+                telefone = obj.id_parceiros.id_usuarios.telefones
+                return telefone.numero
+            except Telefones.DoesNotExist:
+                return None
+        return None
 
 class SolicitacoesSerializer(ModelSerializer):
     class Meta:

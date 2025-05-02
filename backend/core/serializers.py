@@ -982,6 +982,7 @@ class PontosColetaRetrieveSerializer(ModelSerializer):
             'id': obj.id_parceiros.id,
             'cnpj': obj.id_parceiros.cnpj,
             'id_usuarios': obj.id_parceiros.id_usuarios,
+            }
 
     # def get_telefone_parceiro(self, obj):
     #     if obj.id_parceiros and obj.id_parceiros.id_usuarios:

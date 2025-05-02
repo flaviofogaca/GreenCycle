@@ -383,3 +383,7 @@ class ClientesApiView(ListCreateAPIView):
 class ParceirosApiView(ListCreateAPIView):
     queryset = Parceiros.objects.all()
     serializer_class = ParceiroComUsuarioCreateSerializer
+
+class PingView(APIView):
+    def get(self, request):
+        return Response({"message": "pong"})

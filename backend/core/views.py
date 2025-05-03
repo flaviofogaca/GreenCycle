@@ -11,7 +11,7 @@ from django.db.models import Prefetch
 from .models import (
     Avaliacoes, Clientes, Coletas, Enderecos,
     Materiais, MateriaisParceiros, MateriaisPontosColeta, Pagamentos,
-    Parceiros, PontosColeta, Solicitacoes, Telefones, Usuarios
+    Parceiros, PontosColeta, Solicitacoes, Telefones, Usuarios, ImagemPerfil
 )
 from .serializers import (
     UsuarioCreateSerializer, UsuarioRetrieveSerializer,
@@ -24,8 +24,11 @@ from .serializers import (
     MateriaisParceirosSerializer, MateriaisPontosColetaSerializer,
     PagamentosSerializer, PontosColetaCreateSerializer,
     PontosColetaUpdateSerializer, PontosColetaRetrieveSerializer,
-    SolicitacoesSerializer, TelefonesSerializer
+    SolicitacoesSerializer, TelefonesSerializer, ImagemPerfilCreateSerializer,
+    ImagemPerfilRetrieveSerializer
 )
+from .services import imagekit_service
+from django.shortcuts import get_object_or_404
 
 
 def home(request):
@@ -383,3 +386,52 @@ class ClientesApiView(ListCreateAPIView):
 class ParceirosApiView(ListCreateAPIView):
     queryset = Parceiros.objects.all()
     serializer_class = ParceiroComUsuarioCreateSerializer
+
+
+class ImagemPerfilViewSet(viewsets.ModelViewSet):
+    queryset = ImagemPerfil.objects.all()
+    lookup_field = 'id_usuarios'  # Define que vamos buscar pelo id_usuarios
+
+    def get_object(self):
+        # Sobrescreve o método get_object para usar o lookup_field corretamente
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
+        obj = get_object_or_404(self.get_queryset(), **filter_kwargs)
+        self.check_object_permissions(self.request, obj)
+        return obj
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return ImagemPerfilCreateSerializer
+        # elif self.action in ['update', 'partial_update']:
+        #     return ImagemPerfilUpdateSerializer
+        return ImagemPerfilRetrieveSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            ImagemPerfilRetrieveSerializer(serializer.instance).data,
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        try:
+            # Deleta do ImageKit
+            imagekit_service.delete_image(instance.file_id)
+
+            # Deleta do banco de dados
+            self.perform_destroy(instance)
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        except Exception as e:
+            return Response(
+                {"detail": f"Erro ao deletar imagem: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

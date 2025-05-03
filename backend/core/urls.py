@@ -16,7 +16,8 @@ from .views import (
     AvaliacoesViewSet, ColetasViewSet, EnderecosViewSet, MateriaisViewSet,
     MateriaisParceirosViewSet, MateriaisPontosColetaViewSet,
     PagamentosViewSet, PontosColetaViewSet, SolicitacoesViewSet,
-    TelefonesViewSet, home, ParceirosApiView, ClientesApiView
+    TelefonesViewSet, home, ParceirosApiView, ClientesApiView,
+    ImagemPerfilViewSet
 )
 
 # Configuração do router para as viewsets da API
@@ -56,6 +57,9 @@ router.register(
 )
 router.register(r'solicitacoes', SolicitacoesViewSet, basename='solicitacoes')
 router.register(r'telefones', TelefonesViewSet, basename='telefones')
+router.register(
+    r'imagens-perfil', ImagemPerfilViewSet, basename='imagens-perfil'
+)
 
 urlpatterns = [
     # Rota inicial da API

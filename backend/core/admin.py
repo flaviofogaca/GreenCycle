@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     Avaliacoes, Clientes, Coletas, Enderecos,
     Materiais, MateriaisParceiros, MateriaisPontosColeta, Pagamentos,
-    Parceiros, PontosColeta, Solicitacoes, Telefones, Usuarios
+    Parceiros, PontosColeta, Solicitacoes, Telefones, Usuarios, ImagemPerfil
 )
 
 
@@ -161,3 +161,17 @@ class UsuariosAdmin(admin.ModelAdmin):
         'criado_em',
         'atualizado_em',
     )
+
+
+@admin.register(ImagemPerfil)
+class ImagemPerfilAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'id_usuarios',
+        'file_id',
+        'criado_em',
+        'atualizado_em',
+    )
+    list_select_related = ('id_usuarios',)
+    search_fields = ('id_usuarios__usuario', 'id_usuarios__nome')
+    readonly_fields = ('file_id', 'criado_em', 'atualizado_em')

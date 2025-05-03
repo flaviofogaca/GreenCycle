@@ -388,6 +388,11 @@ class ParceirosApiView(ListCreateAPIView):
     serializer_class = ParceiroComUsuarioCreateSerializer
 
 
+class PingView(APIView):
+    def get(self, request):
+        return Response({"message": "pong"})
+
+
 class ImagemPerfilViewSet(viewsets.ModelViewSet):
     queryset = ImagemPerfil.objects.all()
     lookup_field = 'id_usuarios'  # Define que vamos buscar pelo id_usuarios

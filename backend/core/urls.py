@@ -16,7 +16,7 @@ from .views import (
     AvaliacoesViewSet, ColetasViewSet, EnderecosViewSet, MateriaisViewSet,
     MateriaisParceirosViewSet, MateriaisPontosColetaViewSet,
     PagamentosViewSet, PontosColetaViewSet, SolicitacoesViewSet,
-    TelefonesViewSet, home, ParceirosApiView, ClientesApiView,
+    TelefonesViewSet, home, ParceirosApiView, ClientesApiView, PingView,
     ImagemPerfilViewSet
 )
 
@@ -80,4 +80,5 @@ urlpatterns = [
     ),
     path('v1/clientes/', ClientesApiView.as_view(), name='clientes-list'),
     path('v1/parceiros/', ParceirosApiView.as_view(), name='parceiros-list'),
+    path('ping/', PingView.as_view()),
 ]

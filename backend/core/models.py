@@ -285,3 +285,18 @@ class MateriaisPontosColeta(models.Model):
         db_table = 'materiais_pontos_coleta'
         unique_together = (('id_materiais', 'id_pontos_coleta'),)
         auto_created = True
+
+
+class ImagemPerfil(Base):
+    id = models.SmallAutoField(primary_key=True)
+    id_usuarios = models.OneToOneField(
+        'Usuarios',
+        models.DO_NOTHING,
+        db_column='id_usuarios'
+    )
+    imagem = models.TextField()  # URL da imagem no ImageKit
+    file_id = models.CharField(max_length=100)  # ID do arquivo no ImageKit
+
+    class Meta:
+        managed = False
+        db_table = 'imagem_perfil'

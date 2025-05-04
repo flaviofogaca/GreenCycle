@@ -191,3 +191,7 @@ CACHE_MIDDLEWARE_SECONDS = REDIS_TIMEOUT
 # Configuração do Celery (se for usar tarefas assíncronas)
 # CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 # CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+IMAGEKIT_PRIVATE_KEY = os.getenv('IMAGEKIT_PRIVATE_KEY')
+IMAGEKIT_PUBLIC_KEY = os.getenv('IMAGEKIT_PUBLIC_KEY')
+IMAGEKIT_URL_ENDPOINT = os.getenv('IMAGEKIT_URL_ENDPOINT')

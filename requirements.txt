@@ -13,7 +13,10 @@ click-repl==0.3.0
 colorama==0.4.6
 decouple==0.0.7
 Django==5.1.7
+django-appconf==1.1.0
+django-cors-headers==4.7.0
 django-filter==25.1
+django-imagekit==5.0.0
 django-redis==5.4.0
 djangorestframework==3.15.2
 djangorestframework_simplejwt==5.5.0
@@ -22,6 +25,7 @@ flake8==7.1.2
 Flask==3.1.0
 flask-cors==5.0.1
 idna==3.10
+imagekitio==4.1.0
 itsdangerous==2.2.0
 Jinja2==3.1.6
 kombu==5.5.1
@@ -30,6 +34,7 @@ MarkupSafe==3.0.2
 mccabe==0.7.0
 mypy==1.15.0
 mypy-extensions==1.0.0
+pilkit==3.0
 pillow==11.1.0
 prompt_toolkit==3.0.50
 psycopg2==2.9.10
@@ -42,12 +47,13 @@ python-decouple==3.8
 python-dotenv==1.0.1
 redis==5.2.1
 requests==2.32.3
+requests-toolbelt==0.10.1
 six==1.17.0
 sqlparse==0.5.3
 types-requests==2.32.0.20250328
 typing_extensions==4.12.2
 tzdata==2025.1
-urllib3==2.4.0
+urllib3==1.26.20
 vine==5.1.0
 wcwidth==0.2.13
 Werkzeug==3.1.3

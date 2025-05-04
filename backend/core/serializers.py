@@ -1,12 +1,13 @@
 from rest_framework import serializers
 from rest_framework.serializers import (
     ModelSerializer, CharField, PrimaryKeyRelatedField, DateField, Serializer,
-    ValidationError
+    ValidationError, ImageField
 )
 from .models import (
     Avaliacoes, Clientes, Coletas, Enderecos,
     Materiais, MateriaisParceiros, MateriaisPontosColeta, Pagamentos,
-    Parceiros, PontosColeta, Solicitacoes, Telefones, Usuarios, ImagemColetas
+    Parceiros, PontosColeta, Solicitacoes, Telefones, Usuarios, ImagemColetas,
+    ImagemPerfil
 )
 from django.core.validators import MinLengthValidator
 from .mixins import (
@@ -15,8 +16,9 @@ from .mixins import (
     ValidacaoCEPMixin,
     GeocodingMixin
 )
-import requests
 # from django.contrib.auth.hashers import make_password
+import requests
+from .services import imagekit_service
 
 # Lembrar disso para os serializers
 # CRUD (create, retrieve, update, delete)
@@ -982,7 +984,7 @@ class PontosColetaRetrieveSerializer(ModelSerializer):
             'id': obj.id_parceiros.id,
             'cnpj': obj.id_parceiros.cnpj,
             'id_usuarios': obj.id_parceiros.id_usuarios,
-            }
+        }
 
     # def get_telefone_parceiro(self, obj):
     #     if obj.id_parceiros and obj.id_parceiros.id_usuarios:
@@ -1014,3 +1016,48 @@ class TelefonesSerializer(ModelSerializer):
             'id_usuarios',
             'numero',
         ]
+
+
+class ImagemPerfilCreateSerializer(serializers.ModelSerializer):
+    imagem = serializers.ImageField(write_only=True)
+
+    class Meta:
+        model = ImagemPerfil
+        fields = ['id_usuarios', 'imagem']
+
+    def create(self, validated_data):
+        usuario = validated_data['id_usuarios']
+        imagem = validated_data['imagem']
+
+        # Verifica se já existe imagem para o usuário
+        try:
+            imagem_existente = ImagemPerfil.objects.get(id_usuarios=usuario)
+            # Deleta a imagem existente se houver
+            imagekit_service.delete_image(imagem_existente.file_id)
+            imagem_existente.delete()
+        except ImagemPerfil.DoesNotExist:
+            pass
+
+        # Faz o upload da nova imagem
+        try:
+            upload_response = imagekit_service.create_profile_image(
+                imagem, usuario
+            )
+
+            # Cria o registro no banco de dados
+            return ImagemPerfil.objects.create(
+                id_usuarios=usuario,
+                imagem=upload_response.url,
+                file_id=upload_response.file_id
+            )
+
+        except Exception as e:
+            raise serializers.ValidationError(
+                f"Erro ao criar imagem de perfil: {str(e)}"
+            )
+
+
+class ImagemPerfilRetrieveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ImagemPerfil
+        fields = ['id_usuarios', 'imagem', 'file_id']

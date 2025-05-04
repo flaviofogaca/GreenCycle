@@ -59,4 +59,3 @@ wcwidth==0.2.13
 Werkzeug==3.1.3
 gunicorn
 django-cors-headers
-requests==2.31.0

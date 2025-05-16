@@ -27,7 +27,7 @@ O **GreenCycle** é uma plataforma que conecta cidadãos a pontos de coleta e pa
 
 ### 🔧 Backend
 
-Desenvolvido por mim, [@lucasdeinani](https://github.com/lucasdeinani) e [@vinisonaglio](https://github.com/ViniSonaglio)
+Desenvolvido por mim, [@lucasdeinani](https://github.com/lucasdeinani).
 
 - Python 3.13
 - Django 5.1

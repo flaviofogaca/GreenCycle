@@ -18,7 +18,8 @@ from .serializers import (
     ClienteComUsuarioCreateSerializer, ClienteComUsuarioUpdateSerializer,
     ClienteComUsuarioRetrieveSerializer, ParceiroComUsuarioCreateSerializer,
     ParceiroComUsuarioUpdateSerializer, ParceiroComUsuarioRetrieveSerializer,
-    AvaliacoesSerializer, ColetasRetrieveSerializer, ColetasCreateUpdateSerializer, MateriaisSerializer,
+    AvaliacoesSerializer, ColetasRetrieveSerializer,
+    ColetasCreateUpdateSerializer, MateriaisSerializer,
     EnderecoCreateSerializer, EnderecoUpdateSerializer,
     EnderecoRetrieveSerializer, EnderecoBuscaCEPSerializer,
     MateriaisParceirosSerializer, MateriaisPontosColetaSerializer,
@@ -329,10 +330,14 @@ class PontosColetaViewSet(viewsets.ModelViewSet):
         'id_parceiros',
         'id_parceiros__id_usuarios'
     ).prefetch_related(
-        Prefetch('materiais', queryset=Materiais.objects.only('nome', 'descricao')),
+        Prefetch(
+            'materiais',
+            queryset=Materiais.objects.only(
+                'nome', 'descricao'
+            )
+        ),
         'id_parceiros__id_usuarios__telefones'
-    )  
-
+    )
 
     def get_serializer_class(self):
         if self.action == 'create':

@@ -34,9 +34,10 @@ class Base(models.Model):
 class Usuarios(Base):
     id = models.SmallAutoField(primary_key=True)
     nome = models.CharField(max_length=100)
-    usuario = models.CharField(max_length=100) #talvez usar unique=True ? já que tbm é usado no login, deve ser único
+    # talvez usar unique=True ? já que tbm é usado no login, deve ser único
+    usuario = models.CharField(max_length=100)
     email = models.CharField(max_length=100, blank=True, null=True)
-    senha = models.TextField() # futuro usar django.contrib.auth.hashers
+    senha = models.TextField()  # futuro usar django.contrib.auth.hashers
     id_endereco = models.ForeignKey(
         'Enderecos',
         models.DO_NOTHING,
@@ -59,9 +60,6 @@ class Usuarios(Base):
 
 class Clientes(Base):
     id = models.SmallAutoField(primary_key=True)
-    # id_usuarios = models.OneToOneField(
-    #     'Usuarios', models.DO_NOTHING, db_column='id_usuarios'
-    # )
     id_usuarios = models.ForeignKey(
         'Usuarios',
         models.DO_NOTHING,
@@ -71,14 +69,7 @@ class Clientes(Base):
     )
     cpf = models.CharField(unique=True, max_length=15)
     data_nascimento = models.DateField()
-    sexo = models.CharField(max_length=1) #talvez adicionar opção da escolha e manter o limite de um caractere
-    #exemplo
-    #Sexo_choices = [
-    #   ('M', 'Masculino'),
-    #   ('F', 'Feminino'),
-    #   ('O', 'Outro'),
-    #]
-    #sexo = models.CharField(max_length=1, choices=Sexo_choices)
+    sexo = models.CharField(max_length=1)
 
     class Meta:
         managed = False
@@ -129,8 +120,8 @@ class ImagemColetas(models.Model):
         auto_now_add=True, verbose_name="Data de criação")
 
     class Meta:
-        managed = False  
-        db_table = 'imagem_coletas' 
+        managed = False
+        db_table = 'imagem_coletas'
         verbose_name = "Imagem da Coleta"
         verbose_name_plural = "Imagens da Coleta"
 

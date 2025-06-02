@@ -712,6 +712,7 @@ class SolicitacaoCreateSerializer(serializers.ModelSerializer):
             'observacoes': {'required': False, 'allow_blank': True}
         }
 
+
 class PagamentoCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pagamentos
@@ -722,10 +723,12 @@ class PagamentoCreateSerializer(serializers.ModelSerializer):
             'estado_pagamento': {'default': 'pendente'}
         }
 
+
 class EnderecoColetaSerializer(serializers.ModelSerializer, GeocodingMixin):
     class Meta:
         model = Enderecos
-        fields = ['cep', 'estado', 'cidade', 'rua', 'bairro', 'numero', 'complemento']
+        fields = ['cep', 'estado', 'cidade', 'rua',
+                  'bairro', 'numero', 'complemento']
         extra_kwargs = {
             'complemento': {'required': False, 'allow_blank': True}
         }
@@ -739,22 +742,27 @@ class EnderecoColetaSerializer(serializers.ModelSerializer, GeocodingMixin):
         coordenadas = self.get_lat_lon(endereco_completo)
         if not coordenadas:
             # Coordenadas padrão se geocoding falhar vai pra praça dante Caxias do Sul
-            coordenadas = (-29.1683344324061, -51.17962293682549)  
+            coordenadas = (-29.1683344324061, -51.17962293682549)
 
         validated_data['latitude'] = coordenadas[0]
         validated_data['longitude'] = coordenadas[1]
         return super().create(validated_data)
-    
+
+
 class ColetasCreateUpdateSerializer(serializers.ModelSerializer):
     imagens_upload = serializers.ListField(
-        child=serializers.ImageField(max_length=100000, allow_empty_file=False, use_url=False),
+        child=serializers.ImageField(
+            max_length=100000, allow_empty_file=False, use_url=False),
         write_only=True,
         required=False
     )
-    dados_solicitacao = SolicitacaoCreateSerializer(required=True, write_only=True, source='id_solicitacoes')
-    dados_pagamento = PagamentoCreateSerializer(required=False, write_only=True, source='id_pagamentos')
-    dados_endereco = EnderecoColetaSerializer(required=False, write_only=True, source='id_enderecos')
-    
+    dados_solicitacao = SolicitacaoCreateSerializer(
+        required=True, write_only=True, source='id_solicitacoes')
+    dados_pagamento = PagamentoCreateSerializer(
+        required=False, write_only=True, source='id_pagamentos')
+    dados_endereco = EnderecoColetaSerializer(
+        required=False, write_only=True, source='id_enderecos')
+
     class Meta:
         model = Coletas
         fields = [
@@ -792,19 +800,19 @@ class ColetasCreateUpdateSerializer(serializers.ModelSerializer):
         pagamento_data = validated_data.pop('id_pagamentos', None)
         endereco_data = validated_data.pop('id_enderecos', None)
         imagens_data = validated_data.pop('imagens_upload', [])
-        
+
         if isinstance(endereco_data, dict):
             endereco_serializer = EnderecoColetaSerializer(data=endereco_data)
             endereco_serializer.is_valid(raise_exception=True)
             endereco = endereco_serializer.save()
             validated_data['id_enderecos'] = endereco
-        
+
         solicitacao = Solicitacoes.objects.create(**solicitacao_data)
-        
+
         if pagamento_data:
             pagamento = Pagamentos.objects.create(**pagamento_data)
             validated_data['id_pagamentos'] = pagamento
-        
+
         coleta = Coletas.objects.create(
             id_solicitacoes=solicitacao,
             **validated_data
@@ -817,6 +825,7 @@ class ColetasCreateUpdateSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         return ColetasRetrieveSerializer(instance, context=self.context).data
+
 
 class MateriaisParceirosSerializer(ModelSerializer):
     class Meta:
@@ -931,23 +940,26 @@ class PontosColetaUpdateSerializer(ModelSerializer):
 
         return instance
 
+
 class MateriaisSimplesSerializer(ModelSerializer):
     class Meta:
         model = Materiais
-        fields = ['nome', 'descricao'] 
+        fields = ['nome', 'descricao']
+
 
 class MateriaisSimplesPCSerializer(ModelSerializer):
     class Meta:
         model = Materiais
-        fields = ['nome', 'descricao'] 
+        fields = ['nome', 'descricao']
+
 
 class EnderecoSimplesPCSerializer(ModelSerializer):
     endereco_completo = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Enderecos
         fields = ['endereco_completo', 'latitude', 'longitude']
-    
+
     def get_endereco_completo(self, obj):
         partes = [
             obj.rua,

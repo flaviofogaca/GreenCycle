@@ -1,23 +1,19 @@
-from rest_framework import serializers
-from rest_framework.serializers import (
-    ModelSerializer, CharField, PrimaryKeyRelatedField, DateField, Serializer,
-    ValidationError, ImageField
-)
-from .models import (
-    Avaliacoes, Clientes, Coletas, Enderecos,
-    Materiais, MateriaisParceiros, MateriaisPontosColeta, Pagamentos,
-    Parceiros, PontosColeta, Solicitacoes, Telefones, Usuarios, ImagemColetas,
-    ImagemPerfil
-)
-from django.core.validators import MinLengthValidator
-from .mixins import (
-    ValidacaoCFPMixin,
-    ValidacaoCNPJMixin,
-    ValidacaoCEPMixin,
-    GeocodingMixin
-)
 # from django.contrib.auth.hashers import make_password
 import requests
+from django.core.validators import MinLengthValidator
+from django.db import transaction
+from rest_framework import serializers
+from rest_framework.serializers import (CharField, DateField, ImageField,
+                                        ModelSerializer,
+                                        PrimaryKeyRelatedField, Serializer,
+                                        ValidationError)
+
+from .mixins import (GeocodingMixin, ValidacaoCEPMixin, ValidacaoCFPMixin,
+                     ValidacaoCNPJMixin)
+from .models import (Avaliacoes, Clientes, Coletas, Enderecos, ImagemColetas,
+                     ImagemPerfil, Materiais, MateriaisParceiros,
+                     MateriaisPontosColeta, Pagamentos, Parceiros,
+                     PontosColeta, Solicitacoes, Telefones, Usuarios)
 from .services import imagekit_service
 
 # Lembrar disso para os serializers
@@ -68,6 +64,22 @@ class UsuarioRetrieveSerializer(ModelSerializer):
             'id_endereco'
         ]
         depth = 1
+
+
+# Serializer para endereços do usuário (para listagem na criação de coleta)
+class EnderecoUsuarioSerializer(ModelSerializer):
+    endereco_completo = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Enderecos
+        fields = ['id', 'endereco_completo', 'cep', 'estado', 'cidade', 'rua', 'bairro', 'numero', 'complemento']
+
+    def get_endereco_completo(self, obj):
+        partes = [obj.rua, str(obj.numero), obj.bairro, obj.cidade, obj.estado]
+        endereco = ', '.join(filter(None, partes))
+        if obj.complemento:
+            endereco += f" - {obj.complemento}"
+        return endereco
 
 
 class ClienteComUsuarioCreateSerializer(ValidacaoCFPMixin, ModelSerializer):
@@ -215,6 +227,7 @@ class ClienteComUsuarioUpdateSerializer(ValidacaoCFPMixin, ModelSerializer):
 
 class ClienteComUsuarioRetrieveSerializer(ModelSerializer):
     id_usuarios = UsuarioCreateSerializer(read_only=True)
+    enderecos_usuario = serializers.SerializerMethodField()
 
     class Meta:
         model = Clientes
@@ -223,9 +236,17 @@ class ClienteComUsuarioRetrieveSerializer(ModelSerializer):
             'id_usuarios',
             'cpf',
             'data_nascimento',
-            'sexo'
+            'sexo',
+            'enderecos_usuario'
         ]
         depth = 0
+
+    def get_enderecos_usuario(self, obj):
+        # Lista todos os endereços associados ao usuário do cliente
+        if obj.id_usuarios and obj.id_usuarios.id_endereco:
+            endereco = obj.id_usuarios.id_endereco
+            return EnderecoUsuarioSerializer(endereco).data
+        return None
 
 
 class ParceiroComUsuarioCreateSerializer(ValidacaoCNPJMixin, ModelSerializer):
@@ -598,20 +619,118 @@ class ImagemColetaSerializer(ModelSerializer):
         fields = ['id', 'imagem', 'criado_em']
 
 
+# Serializers específicos para criação de coleta
+class SolicitacaoCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Solicitacoes
+        fields = ['observacoes', 'latitude', 'longitude']
+        extra_kwargs = {
+            'observacoes': {'required': False, 'allow_blank': True}
+        }
+
+
+class PagamentoCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Pagamentos
+        fields = ['valor_pagamento', 'saldo_pagamento']
+        extra_kwargs = {
+            'valor_pagamento': {'required': True},
+            'saldo_pagamento': {'default': '0.00'}
+        }
+
+
+class ColetasCreateSerializer(serializers.ModelSerializer):
+    dados_solicitacao = SolicitacaoCreateSerializer(write_only=True)
+    dados_pagamento = PagamentoCreateSerializer(write_only=True)
+
+    class Meta:
+        model = Coletas
+        fields = [
+            'id_clientes',
+            'id_materiais',
+            'peso_material',
+            'quantidade_material',
+            'id_enderecos',
+            'dados_solicitacao',
+            'dados_pagamento'
+        ]
+
+    def validate(self, data):
+        # Validar que apenas peso OU quantidade foi fornecido
+        peso = data.get('peso_material')
+        quantidade = data.get('quantidade_material')
+        
+        if peso and quantidade:
+            raise serializers.ValidationError(
+                "Uma coleta deve ter apenas peso OU quantidade, não ambos."
+            )
+        if not peso and not quantidade:
+            raise serializers.ValidationError(
+                "Uma coleta deve ter peso OU quantidade."
+            )
+        
+        return data
+
+    @transaction.atomic
+    def create(self, validated_data):
+        solicitacao_data = validated_data.pop('dados_solicitacao')
+        pagamento_data = validated_data.pop('dados_pagamento')
+
+        # Criar solicitação com status padrão 'pendente'
+        solicitacao = Solicitacoes.objects.create(
+            estado_solicitacao='pendente',
+            **solicitacao_data
+        )
+
+        # Criar pagamento com status padrão 'pendente'
+        pagamento = Pagamentos.objects.create(
+            estado_pagamento='pendente',
+            **pagamento_data
+        )
+
+        # Criar coleta
+        coleta = Coletas.objects.create(
+            id_solicitacoes=solicitacao,
+            id_pagamentos=pagamento,
+            **validated_data
+        )
+
+        return coleta
+
+
+class ColetasUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Coletas
+        fields = [
+            'peso_material',
+            'quantidade_material',
+            'id_parceiros'
+        ]
+
+    def validate(self, data):
+        # Validar que apenas peso OU quantidade foi fornecido
+        peso = data.get('peso_material')
+        quantidade = data.get('quantidade_material')
+        
+        if peso and quantidade:
+            raise serializers.ValidationError(
+                "Uma coleta deve ter apenas peso OU quantidade, não ambos."
+            )
+            
+        return data
+
+
 class ColetasRetrieveSerializer(serializers.ModelSerializer):
     imagens_coletas = ImagemColetaSerializer(many=True, read_only=True)
-
     cliente_nome = serializers.SerializerMethodField()
     cliente_id = serializers.SerializerMethodField()
     parceiro_nome = serializers.SerializerMethodField()
     material_nome = serializers.SerializerMethodField()
-    id_materiais = serializers.SerializerMethodField()
     endereco_completo = serializers.SerializerMethodField()
-    id_enderecos = serializers.SerializerMethodField()
     valor_pagamento = serializers.SerializerMethodField()
-    status_solicitacoes = serializers.SerializerMethodField()
-    id_solicitacoes = serializers.SerializerMethodField()
-    id_pagamentos = serializers.SerializerMethodField()
+    status_pagamento = serializers.SerializerMethodField()
+    status_solicitacao = serializers.SerializerMethodField()
+    observacoes_solicitacao = serializers.SerializerMethodField()
 
     class Meta:
         model = Coletas
@@ -621,20 +740,17 @@ class ColetasRetrieveSerializer(serializers.ModelSerializer):
             'cliente_nome',
             'parceiro_nome',
             'material_nome',
-            'id_materiais',
             'peso_material',
             'quantidade_material',
             'endereco_completo',
-            'id_enderecos',
-            'id_solicitacoes',
-            'status_solicitacoes',
+            'status_solicitacao',
+            'observacoes_solicitacao',
+            'status_pagamento',
             'valor_pagamento',
-            'id_pagamentos',
             'criado_em',
             'atualizado_em',
             'imagens_coletas'
         ]
-        depth = 1
 
     def get_cliente_nome(self, obj):
         if obj.id_clientes and obj.id_clientes.id_usuarios:
@@ -656,11 +772,6 @@ class ColetasRetrieveSerializer(serializers.ModelSerializer):
             return obj.id_materiais.nome
         return None
 
-    def get_id_materiais(self, obj):
-        if obj.id_materiais:
-            return obj.id_materiais.id
-        return None
-
     def get_endereco_completo(self, obj):
         if obj.id_enderecos:
             endereco = obj.id_enderecos
@@ -677,154 +788,68 @@ class ColetasRetrieveSerializer(serializers.ModelSerializer):
             return endereco_str
         return None
 
-    def get_id_enderecos(self, obj):
-        if obj.id_enderecos:
-            return obj.id_enderecos.id
-        return None
-
     def get_valor_pagamento(self, obj):
         if obj.id_pagamentos:
             return obj.id_pagamentos.valor_pagamento
         return None
 
-    def get_status_solicitacoes(self, obj):
-        if obj.id_solicitacoes:
-            return obj.id_solicitacoes.estado_solicitacao
-        return None
-
-    def get_id_solicitacoes(self, obj):
-        if obj.id_solicitacoes:
-            return obj.id_solicitacoes.id
-        return None
-
-    def get_id_pagamentos(self, obj):
+    def get_status_pagamento(self, obj):
         if obj.id_pagamentos:
-            return obj.id_pagamentos.id
+            return obj.id_pagamentos.get_estado_pagamento_display()
+        return None
+
+    def get_status_solicitacao(self, obj):
+        if obj.id_solicitacoes:
+            return obj.id_solicitacoes.get_estado_solicitacao_display()
+        return None
+
+    def get_observacoes_solicitacao(self, obj):
+        if obj.id_solicitacoes:
+            return obj.id_solicitacoes.observacoes
         return None
 
 
-class SolicitacaoCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Solicitacoes
-        fields = ['estado_solicitacao', 'observacoes', 'latitude', 'longitude']
-        extra_kwargs = {
-            'estado_solicitacao': {'default': 'pendente'},
-            'observacoes': {'required': False, 'allow_blank': True}
-        }
-
-
-class PagamentoCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Pagamentos
-        fields = ['valor_pagamento', 'saldo_pagamento', 'estado_pagamento']
-        extra_kwargs = {
-            'valor_pagamento': {'required': False},
-            'saldo_pagamento': {'default': 0},
-            'estado_pagamento': {'default': 'pendente'}
-        }
-
-
-class EnderecoColetaSerializer(serializers.ModelSerializer, GeocodingMixin):
-    class Meta:
-        model = Enderecos
-        fields = ['cep', 'estado', 'cidade', 'rua',
-                  'bairro', 'numero', 'complemento']
-        extra_kwargs = {
-            'complemento': {'required': False, 'allow_blank': True}
-        }
-
-    def create(self, validated_data):
-        endereco_completo = (
-            f"{validated_data.get('rua')}, {validated_data.get('numero')}, "
-            f"{validated_data.get('bairro')}, {validated_data.get('cidade')}, "
-            f"{validated_data.get('estado')}, {validated_data.get('cep')}"
-        )
-        coordenadas = self.get_lat_lon(endereco_completo)
-        if not coordenadas:
-            # Coordenadas padrão se geocoding falhar vai pra praça dante Caxias do Sul
-            coordenadas = (-29.1683344324061, -51.17962293682549)
-
-        validated_data['latitude'] = coordenadas[0]
-        validated_data['longitude'] = coordenadas[1]
-        return super().create(validated_data)
-
-
-class ColetasCreateUpdateSerializer(serializers.ModelSerializer):
-    imagens_upload = serializers.ListField(
-        child=serializers.ImageField(
-            max_length=100000, allow_empty_file=False, use_url=False),
-        write_only=True,
-        required=False
-    )
-    dados_solicitacao = SolicitacaoCreateSerializer(
-        required=True, write_only=True, source='id_solicitacoes')
-    dados_pagamento = PagamentoCreateSerializer(
-        required=False, write_only=True, source='id_pagamentos')
-    dados_endereco = EnderecoColetaSerializer(
-        required=False, write_only=True, source='id_enderecos')
+# Serializer para listagem de coletas pendentes para parceiros
+class ColetasPendentesParceiroSerializer(serializers.ModelSerializer):
+    cliente_nome = serializers.SerializerMethodField()
+    material_nome = serializers.SerializerMethodField()
+    endereco_completo = serializers.SerializerMethodField()
+    valor_pagamento = serializers.SerializerMethodField()
+    distancia_km = serializers.SerializerMethodField()
 
     class Meta:
         model = Coletas
         fields = [
             'id',
-            'id_clientes',
-            'id_parceiros',
-            'id_materiais',
+            'cliente_nome',
+            'material_nome',
             'peso_material',
             'quantidade_material',
-            'dados_endereco',  # Para criar novo endereço
-            'id_enderecos',   # Para usar endereço existente
-            'dados_solicitacao',
-            'dados_pagamento',
-            'imagens_upload'
+            'endereco_completo',
+            'valor_pagamento',
+            'distancia_km',
+            'criado_em'
         ]
-        extra_kwargs = {
-            'id_clientes': {'required': True},
-            'id_materiais': {'required': True},
-            'id_enderecos': {'required': False, 'allow_null': True}
-        }
 
-    def validate(self, data):
-        if not data.get('dados_endereco') and not data.get('id_enderecos'):
-            raise serializers.ValidationError(
-                "Forneça um endereço existente (id_enderecos) ou os dados de um novo endereço (dados_endereco)"
-            )
-        if data.get('dados_endereco') and data.get('id_enderecos'):
-            raise serializers.ValidationError(
-                "Forneça apenas um endereço existente ou os dados de um novo endereço, não ambos"
-            )
-        return data
+    def get_cliente_nome(self, obj):
+        return obj.id_clientes.id_usuarios.nome if obj.id_clientes and obj.id_clientes.id_usuarios else None
 
-    def create(self, validated_data):
-        solicitacao_data = validated_data.pop('id_solicitacoes')
-        pagamento_data = validated_data.pop('id_pagamentos', None)
-        endereco_data = validated_data.pop('id_enderecos', None)
-        imagens_data = validated_data.pop('imagens_upload', [])
+    def get_material_nome(self, obj):
+        return obj.id_materiais.nome if obj.id_materiais else None
 
-        if isinstance(endereco_data, dict):
-            endereco_serializer = EnderecoColetaSerializer(data=endereco_data)
-            endereco_serializer.is_valid(raise_exception=True)
-            endereco = endereco_serializer.save()
-            validated_data['id_enderecos'] = endereco
+    def get_endereco_completo(self, obj):
+        if obj.id_enderecos:
+            endereco = obj.id_enderecos
+            return f"{endereco.rua}, {endereco.numero}, {endereco.bairro}, {endereco.cidade}"
+        return None
 
-        solicitacao = Solicitacoes.objects.create(**solicitacao_data)
+    def get_valor_pagamento(self, obj):
+        return obj.id_pagamentos.valor_pagamento if obj.id_pagamentos else None
 
-        if pagamento_data:
-            pagamento = Pagamentos.objects.create(**pagamento_data)
-            validated_data['id_pagamentos'] = pagamento
-
-        coleta = Coletas.objects.create(
-            id_solicitacoes=solicitacao,
-            **validated_data
-        )
-
-        for imagem in imagens_data:
-            ImagemColetas.objects.create(coleta=coleta, imagem=imagem)
-
-        return coleta
-
-    def to_representation(self, instance):
-        return ColetasRetrieveSerializer(instance, context=self.context).data
+    def get_distancia_km(self, obj):
+        # Implementar cálculo de distância baseado na localização do parceiro
+        # Por enquanto retorna None - pode ser implementado posteriormente
+        return None
 
 
 class MateriaisParceirosSerializer(ModelSerializer):

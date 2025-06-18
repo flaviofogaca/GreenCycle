@@ -1,24 +1,23 @@
 import django.contrib.admin as django_admin
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
+from rest_framework_simplejwt.views import (TokenObtainPairView,
+                                            TokenRefreshView)
+
+# from . import admin
+from .views import (AvaliacoesViewSet, ClienteComUsuarioCreateViewSet,
+                    ClientesApiView, ColetasViewSet, EnderecosViewSet,
+                    ImagemPerfilViewSet, MateriaisParceirosViewSet,
+                    MateriaisPontosColetaViewSet, MateriaisViewSet,
+                    PagamentosViewSet, ParceiroComUsuarioCreateViewSet,
+                    ParceirosApiView, PingView, PontosColetaViewSet,
+                    SolicitacoesViewSet, TelefonesViewSet,
+                    UsuariosCreateViewSet, home)
+
 # from django.conf.urls.static import static
 # from django.conf import settings
 
 
-# from . import admin
-from .views import (
-    UsuariosCreateViewSet, ClienteComUsuarioCreateViewSet,
-    ParceiroComUsuarioCreateViewSet,
-    AvaliacoesViewSet, ColetasViewSet, EnderecosViewSet, MateriaisViewSet,
-    MateriaisParceirosViewSet, MateriaisPontosColetaViewSet,
-    PagamentosViewSet, PontosColetaViewSet, SolicitacoesViewSet,
-    TelefonesViewSet, home, ParceirosApiView, ClientesApiView, PingView,
-    ImagemPerfilViewSet
-)
 
 # Configuração do router para as viewsets da API
 router = DefaultRouter()
@@ -82,3 +81,21 @@ urlpatterns = [
     path('v1/parceiros/', ParceirosApiView.as_view(), name='parceiros-list'),
     path('ping/', PingView.as_view()),
 ]
+
+# As seguintes rotas são criadas automaticamente pelo router:
+# 
+# COLETAS - Principais funcionalidades:
+# GET /v1/coletas/pendentes-parceiro/{parceiro_id}/ - Lista coletas pendentes para parceiro
+# GET /v1/coletas/minhas-coletas-parceiro/{parceiro_id}/ - Lista coletas do parceiro
+# GET /v1/coletas/minhas-coletas-cliente/{cliente_id}/ - Lista coletas do cliente
+# POST /v1/coletas/{id}/aceitar-coleta/ - Aceitar coleta
+# POST /v1/coletas/{id}/finalizar-coleta/ - Finalizar coleta
+# POST /v1/coletas/{id}/cancelar-coleta/ - Cancelar coleta
+# POST /v1/coletas/{id}/upload-imagem/ - Upload de imagem
+#
+# ENDEREÇOS:
+# POST /v1/enderecos/buscar-cep/ - Buscar dados de endereço por CEP
+#
+# USUÁRIOS:
+# GET /v1/clientes/por-usuario/{usuario}/ - Buscar cliente por nome de usuário
+# GET /v1/parceiros/por-usuario/{usuario}/ - Buscar parceiro por nome de usuário

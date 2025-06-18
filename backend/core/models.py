@@ -7,7 +7,7 @@ from django.db import models
 
 class Base(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
-    atualizado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
         abstract = True
@@ -34,8 +34,7 @@ class Base(models.Model):
 class Usuarios(Base):
     id = models.SmallAutoField(primary_key=True)
     nome = models.CharField(max_length=100)
-    # talvez usar unique=True ? já que tbm é usado no login, deve ser único
-    usuario = models.CharField(max_length=100)
+    usuario = models.CharField(max_length=100, unique=True)
     email = models.CharField(max_length=100, blank=True, null=True)
     senha = models.TextField()  # futuro usar django.contrib.auth.hashers
     id_endereco = models.ForeignKey(
@@ -112,16 +111,20 @@ class Avaliacoes(Base):
         db_table = 'avaliacoes'
 
 
-class ImagemColetas(models.Model):
-    coleta = models.ForeignKey('Coletas', related_name='imagens_coletas',
-                               on_delete=models.CASCADE, verbose_name="Coleta")
-    imagem = models.ImageField(upload_to='coletas/', verbose_name="Imagem")
-    criado_em = models.DateTimeField(
-        auto_now_add=True, verbose_name="Data de criação")
+class ImagemColetas(Base):
+    id = models.SmallAutoField(primary_key=True)
+    imagem = models.CharField(max_length=100, verbose_name="Imagem")
+    id_coletas = models.ForeignKey(
+        'Coletas', 
+        related_name='imagens_coletas',
+        on_delete=models.CASCADE, 
+        db_column='id_coletas',
+        verbose_name="Coleta"
+    )
 
     class Meta:
         managed = False
-        db_table = 'imagem_coletas'
+        db_table = 'imagens_coleta'
         verbose_name = "Imagem da Coleta"
         verbose_name_plural = "Imagens da Coleta"
 
@@ -144,6 +147,15 @@ class Coletas(Base):
         'Solicitacoes', models.DO_NOTHING, db_column='id_solicitacoes')
     id_pagamentos = models.ForeignKey(
         'Pagamentos', models.DO_NOTHING, db_column='id_pagamentos')
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        # Validar que só pode ter peso OU quantidade, não ambos
+        if self.peso_material and self.quantidade_material:
+            raise ValidationError("Uma coleta deve ter apenas peso OU quantidade, não ambos.")
+        if not self.peso_material and not self.quantidade_material:
+            raise ValidationError("Uma coleta deve ter peso OU quantidade.")
 
     class Meta:
         managed = False
@@ -194,10 +206,20 @@ class MateriaisParceiros(models.Model):
 
 
 class Pagamentos(Base):
+    ESTADOS_PAGAMENTO = [
+        ('pendente', 'Pendente'),
+        ('pago', 'Pago'),
+        ('cancelado', 'Cancelado'),
+    ]
+    
     id = models.SmallAutoField(primary_key=True)
     valor_pagamento = models.TextField()  # This field type is a guess.
     saldo_pagamento = models.TextField()  # This field type is a guess.
-    estado_pagamento = models.CharField(max_length=10)
+    estado_pagamento = models.CharField(
+        max_length=10, 
+        choices=ESTADOS_PAGAMENTO,
+        default='pendente'
+    )
 
     class Meta:
         managed = False
@@ -235,8 +257,19 @@ class PontosColeta(Base):
 
 
 class Solicitacoes(Base):
+    ESTADOS_SOLICITACAO = [
+        ('pendente', 'Pendente'),
+        ('aceitado', 'Aceitado'),
+        ('cancelado', 'Cancelado'),
+        ('coletado', 'Coletado'),
+    ]
+    
     id = models.SmallAutoField(primary_key=True)
-    estado_solicitacao = models.CharField(max_length=10)
+    estado_solicitacao = models.CharField(
+        max_length=10,
+        choices=ESTADOS_SOLICITACAO,
+        default='pendente'
+    )
     observacoes = models.CharField(max_length=100, blank=True, null=True)
     latitude = models.CharField(max_length=100)
     longitude = models.CharField(max_length=100)

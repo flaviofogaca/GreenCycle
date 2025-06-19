@@ -424,33 +424,27 @@ class ColetasViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_200_OK
             )
 
-    @action(detail=True, methods=['post'], url_path='finalizar-coleta')
-    def finalizar_coleta(self, request, pk=None):
+    @action(detail=True, methods=['post'], url_path='marcar-coletado')
+    def marcar_coletado(self, request, pk=None):
         """
-        Permite que um parceiro finalize uma coleta aceita
+        Permite que um parceiro marque uma coleta como coletada
         """
         coleta = self.get_object()
         
         if coleta.id_solicitacoes.estado_solicitacao != 'aceitado':
             return Response(
-                {'error': 'Esta coleta não pode ser finalizada'},
+                {'error': 'Esta coleta não pode ser marcada como coletada'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         with transaction.atomic():
-            # Atualizar status da solicitação
+            # Atualizar status da solicitação para coletado
             solicitacao = coleta.id_solicitacoes
             solicitacao.estado_solicitacao = 'coletado'
-            solicitacao.finalizado_em = timezone.now()
             solicitacao.save()
             
-            # Atualizar status do pagamento
-            pagamento = coleta.id_pagamentos
-            pagamento.estado_pagamento = 'pago'
-            pagamento.save()
-            
             return Response(
-                {'message': 'Coleta finalizada com sucesso'},
+                {'message': 'Coleta marcada como coletada com sucesso'},
                 status=status.HTTP_200_OK
             )
 
@@ -458,12 +452,15 @@ class ColetasViewSet(viewsets.ModelViewSet):
     def cancelar_coleta(self, request, pk=None):
         """
         Permite que um cliente cancele uma coleta
+        Condições: pagamento pendente E solicitação pendente
         """
         coleta = self.get_object()
         
-        if coleta.id_solicitacoes.estado_solicitacao not in ['pendente', 'aceitado']:
+        # Validar se pode cancelar: pagamento pendente E solicitação pendente
+        if (coleta.id_pagamentos.estado_pagamento != 'pendente' or 
+            coleta.id_solicitacoes.estado_solicitacao != 'pendente'):
             return Response(
-                {'error': 'Esta coleta não pode ser cancelada'},
+                {'error': 'Esta coleta só pode ser cancelada se estiver com pagamento pendente e solicitação pendente'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -480,6 +477,40 @@ class ColetasViewSet(viewsets.ModelViewSet):
             
             return Response(
                 {'message': 'Coleta cancelada com sucesso'},
+                status=status.HTTP_200_OK
+            )
+
+    @action(detail=True, methods=['post'], url_path='finalizar-coleta')
+    def finalizar_coleta(self, request, pk=None):
+        """
+        Permite que um cliente finalize uma coleta
+        Condições: pagamento pendente E solicitação coletado
+        Ao finalizar: muda solicitação para finalizado E pagamento para pago
+        """
+        coleta = self.get_object()
+        
+        # Validar se pode finalizar: pagamento pendente E solicitação coletado
+        if (coleta.id_pagamentos.estado_pagamento != 'pendente' or 
+            coleta.id_solicitacoes.estado_solicitacao != 'coletado'):
+            return Response(
+                {'error': 'Esta coleta só pode ser finalizada se estiver com pagamento pendente e solicitação coletado'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        with transaction.atomic():
+            # Atualizar status da solicitação para finalizado
+            solicitacao = coleta.id_solicitacoes
+            solicitacao.estado_solicitacao = 'finalizado'
+            solicitacao.finalizado_em = timezone.now()
+            solicitacao.save()
+            
+            # Atualizar status do pagamento para pago
+            pagamento = coleta.id_pagamentos
+            pagamento.estado_pagamento = 'pago'
+            pagamento.save()
+            
+            return Response(
+                {'message': 'Coleta finalizada com sucesso'},
                 status=status.HTTP_200_OK
             )
 

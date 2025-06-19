@@ -88,9 +88,10 @@ urlpatterns = [
 # GET /v1/coletas/pendentes-parceiro/{parceiro_id}/ - Lista coletas pendentes para parceiro
 # GET /v1/coletas/minhas-coletas-parceiro/{parceiro_id}/ - Lista coletas do parceiro
 # GET /v1/coletas/minhas-coletas-cliente/{cliente_id}/ - Lista coletas do cliente
-# POST /v1/coletas/{id}/aceitar-coleta/ - Aceitar coleta
-# POST /v1/coletas/{id}/finalizar-coleta/ - Finalizar coleta
-# POST /v1/coletas/{id}/cancelar-coleta/ - Cancelar coleta
+# POST /v1/coletas/{id}/aceitar-coleta/ - Aceitar coleta (parceiro)
+# POST /v1/coletas/{id}/marcar-coletado/ - Marcar como coletado (parceiro)
+# POST /v1/coletas/{id}/finalizar-coleta/ - Finalizar coleta (cliente)
+# POST /v1/coletas/{id}/cancelar-coleta/ - Cancelar coleta (cliente)
 # POST /v1/coletas/{id}/upload-imagem/ - Upload de imagem
 #
 # ENDEREÇOS:

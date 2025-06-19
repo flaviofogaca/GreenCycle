@@ -262,6 +262,7 @@ class Solicitacoes(Base):
         ('aceitado', 'Aceitado'),
         ('cancelado', 'Cancelado'),
         ('coletado', 'Coletado'),
+        ('finalizado', 'Finalizado'),
     ]
     
     id = models.SmallAutoField(primary_key=True)
@@ -271,8 +272,6 @@ class Solicitacoes(Base):
         default='pendente'
     )
     observacoes = models.CharField(max_length=100, blank=True, null=True)
-    latitude = models.CharField(max_length=100)
-    longitude = models.CharField(max_length=100)
     finalizado_em = models.DateTimeField(blank=True, null=True)
 
     class Meta:

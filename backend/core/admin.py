@@ -179,8 +179,6 @@ class SolicitacoesAdmin(admin.ModelAdmin):
         'id',
         'estado_solicitacao',
         'observacoes',
-        'latitude',
-        'longitude',
         'finalizado_em',
         'criado_em',
         'atualizado_em',

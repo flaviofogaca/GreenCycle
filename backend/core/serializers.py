@@ -623,7 +623,7 @@ class ImagemColetaSerializer(ModelSerializer):
 class SolicitacaoCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Solicitacoes
-        fields = ['observacoes', 'latitude', 'longitude']
+        fields = ['observacoes']
         extra_kwargs = {
             'observacoes': {'required': False, 'allow_blank': True}
         }
@@ -815,7 +815,6 @@ class ColetasPendentesParceiroSerializer(serializers.ModelSerializer):
     material_nome = serializers.SerializerMethodField()
     endereco_completo = serializers.SerializerMethodField()
     valor_pagamento = serializers.SerializerMethodField()
-    distancia_km = serializers.SerializerMethodField()
 
     class Meta:
         model = Coletas
@@ -827,7 +826,6 @@ class ColetasPendentesParceiroSerializer(serializers.ModelSerializer):
             'quantidade_material',
             'endereco_completo',
             'valor_pagamento',
-            'distancia_km',
             'criado_em'
         ]
 
@@ -845,11 +843,6 @@ class ColetasPendentesParceiroSerializer(serializers.ModelSerializer):
 
     def get_valor_pagamento(self, obj):
         return obj.id_pagamentos.valor_pagamento if obj.id_pagamentos else None
-
-    def get_distancia_km(self, obj):
-        # Implementar cálculo de distância baseado na localização do parceiro
-        # Por enquanto retorna None - pode ser implementado posteriormente
-        return None
 
 
 class MateriaisParceirosSerializer(ModelSerializer):
@@ -1040,8 +1033,6 @@ class SolicitacoesSerializer(ModelSerializer):
             'id',
             'estado_solicitacao',
             'observacoes',
-            'latitude',
-            'longitude',
             'finalizado_em',
         ]
 

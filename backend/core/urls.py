@@ -100,3 +100,12 @@ urlpatterns = [
 # USUÁRIOS:
 # GET /v1/clientes/por-usuario/{usuario}/ - Buscar cliente por nome de usuário
 # GET /v1/parceiros/por-usuario/{usuario}/ - Buscar parceiro por nome de usuário
+#
+# TELEFONES:
+# GET /v1/telefones/ - Lista todos os telefones
+# POST /v1/telefones/ - Criar novo telefone
+# GET /v1/telefones/{id_usuarios}/ - Buscar telefone por ID do usuário
+# PUT /v1/telefones/{id_usuarios}/ - Atualizar telefone do usuário
+# PATCH /v1/telefones/{id_usuarios}/ - Atualizar parcialmente telefone do usuário
+# DELETE /v1/telefones/{id_usuarios}/ - Deletar telefone do usuário
+# GET /v1/telefones/por-usuario/{usuario_id}/ - Buscar telefone por ID do usuário

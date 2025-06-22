@@ -1,8 +1,9 @@
 import re
-from django.core.exceptions import ValidationError
-import requests
 from time import sleep
 from urllib.parse import quote
+
+import requests
+from django.core.exceptions import ValidationError
 
 
 class ValidacaoCFPMixin:
@@ -82,6 +83,41 @@ class ValidacaoCEPMixin:
 
         # Retorna o CEP formatado como string numérica
         return cep_numerico
+
+
+class ValidacaoTelefoneMixin:
+    @staticmethod
+    def validar_telefone(value):
+        """
+        Valida número de telefone brasileiro
+        Aceita formatos: (11) 99999-9999, 11 999999999, 11999999999
+        """
+        if not value:
+            return value
+            
+        # Remove caracteres não numéricos
+        telefone = re.sub(r'[^0-9]', '', value)
+        
+        # Verifica se tem pelo menos 10 dígitos (telefone fixo)
+        # ou 11 dígitos (celular com 9)
+        if len(telefone) < 10 or len(telefone) > 11:
+            raise ValidationError('Telefone deve ter 10 ou 11 dígitos')
+        
+        # Verifica se é um número de celular (11 dígitos) e começa com 9
+        if len(telefone) == 11 and telefone[2] != '9':
+            raise ValidationError('Número de celular deve começar com 9 após o DDD')
+        
+        # Verifica se todos os dígitos são iguais
+        if len(set(telefone)) == 1:
+            raise ValidationError('Número de telefone inválido')
+        
+        # Retorna formatado
+        if len(telefone) == 10:
+            # Telefone fixo: (11) 1234-5678
+            return f'({telefone[:2]}) {telefone[2:6]}-{telefone[6:]}'
+        else:
+            # Celular: (11) 99999-9999
+            return f'({telefone[:2]}) {telefone[2:7]}-{telefone[7:]}'
 
 
 class GeocodingMixin:

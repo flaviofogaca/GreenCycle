@@ -38,8 +38,9 @@ from .serializers import (AvaliacoesSerializer,
                           PontosColetaCreateSerializer,
                           PontosColetaRetrieveSerializer,
                           PontosColetaUpdateSerializer, SolicitacoesSerializer,
-                          TelefonesSerializer, UsuarioCreateSerializer,
-                          UsuarioRetrieveSerializer)
+                          TelefoneCreateSerializer, TelefoneRetrieveSerializer,
+                          TelefonesSerializer, TelefoneUpdateSerializer,
+                          UsuarioCreateSerializer, UsuarioRetrieveSerializer)
 from .services import imagekit_service
 
 
@@ -608,8 +609,51 @@ class SolicitacoesViewSet(viewsets.ModelViewSet):
 
 
 class TelefonesViewSet(viewsets.ModelViewSet):
-    queryset = Telefones.objects.all()
-    serializer_class = TelefonesSerializer
+    queryset = Telefones.objects.all().select_related('id_usuarios')
+    lookup_field = 'id_usuarios'  # Permite buscar por ID do usuário
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return TelefoneCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return TelefoneUpdateSerializer
+        elif self.action == 'retrieve':
+            return TelefoneRetrieveSerializer
+        return TelefoneRetrieveSerializer
+
+    def get_object(self):
+        # Sobrescreve o método get_object para usar o lookup_field corretamente
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
+        obj = get_object_or_404(self.get_queryset(), **filter_kwargs)
+        self.check_object_permissions(self.request, obj)
+        return obj
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            TelefoneRetrieveSerializer(serializer.instance).data,
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
+
+    @action(detail=False, methods=['get'], url_path='por-usuario/(?P<usuario_id>[^/]+)')
+    def por_usuario(self, request, usuario_id=None):
+        """
+        Busca telefone por ID do usuário
+        """
+        try:
+            telefone = Telefones.objects.get(id_usuarios=usuario_id)
+            serializer = TelefoneRetrieveSerializer(telefone)
+            return Response(serializer.data)
+        except Telefones.DoesNotExist:
+            return Response(
+                {'detail': 'Telefone não encontrado para este usuário'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 
 class LoginAPIView(APIView):

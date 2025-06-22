@@ -9,7 +9,7 @@ from rest_framework.serializers import (CharField, DateField, ImageField,
                                         ValidationError)
 
 from .mixins import (GeocodingMixin, ValidacaoCEPMixin, ValidacaoCFPMixin,
-                     ValidacaoCNPJMixin)
+                     ValidacaoCNPJMixin, ValidacaoTelefoneMixin)
 from .models import (Avaliacoes, Clientes, Coletas, Enderecos, ImagemColetas,
                      ImagemPerfil, Materiais, MateriaisParceiros,
                      MateriaisPontosColeta, Pagamentos, Parceiros,
@@ -20,6 +20,51 @@ from .services import imagekit_service
 # CRUD (create, retrieve, update, delete)
 
 
+# ====================== SERIALIZERS DE TELEFONE ======================
+
+class TelefoneCreateSerializer(ValidacaoTelefoneMixin, ModelSerializer):
+    numero = CharField(max_length=20, required=True)
+    
+    class Meta:
+        model = Telefones
+        fields = ['id_usuarios', 'numero']
+        
+    def validate_numero(self, value):
+        return self.validar_telefone(value)
+        
+    def create(self, validated_data):
+        # Verifica se o usuário já tem telefone
+        usuario = validated_data['id_usuarios']
+        if Telefones.objects.filter(id_usuarios=usuario).exists():
+            raise ValidationError({'detail': 'Este usuário já possui um telefone cadastrado'})
+        
+        return super().create(validated_data)
+
+
+class TelefoneUpdateSerializer(ValidacaoTelefoneMixin, ModelSerializer):
+    numero = CharField(max_length=20, required=True)
+    
+    class Meta:
+        model = Telefones
+        fields = ['numero']
+        
+    def validate_numero(self, value):
+        return self.validar_telefone(value)
+
+
+class TelefoneRetrieveSerializer(ModelSerializer):
+    usuario_nome = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Telefones
+        fields = ['id_usuarios', 'numero', 'usuario_nome', 'criado_em', 'atualizado_em']
+        
+    def get_usuario_nome(self, obj):
+        return obj.id_usuarios.nome if obj.id_usuarios else None
+
+
+# ====================== SERIALIZERS DE USUÁRIO ======================
+
 class UsuarioCreateSerializer(ModelSerializer):
     senha = CharField(
         # write_only=True,
@@ -27,6 +72,7 @@ class UsuarioCreateSerializer(ModelSerializer):
         validators=[MinLengthValidator(8)],
         style={'input_type': 'password'}
     )
+    telefone = CharField(max_length=20, required=False, write_only=True, allow_blank=True)
 
     class Meta:
         model = Usuarios
@@ -37,6 +83,7 @@ class UsuarioCreateSerializer(ModelSerializer):
             'email',
             'senha',
             'id_endereco',
+            'telefone'
         ]
         extra_kwargs = {
             'senha': {'write_only': True},
@@ -44,15 +91,28 @@ class UsuarioCreateSerializer(ModelSerializer):
         }
 
     def create(self, validated_data):
+        # Extrai o telefone dos dados
+        telefone_numero = validated_data.pop('telefone', None)
+        
         # Criptografa a senha antes de salvar
         # validated_data['senha'] = make_password(validated_data['senha'])
 
         usuario = Usuarios(**validated_data)
         usuario.save()
+        
+        # Cria o telefone se foi fornecido
+        if telefone_numero and telefone_numero.strip():
+            Telefones.objects.create(
+                id_usuarios=usuario,
+                numero=telefone_numero.strip()
+            )
+        
         return usuario
 
 
 class UsuarioRetrieveSerializer(ModelSerializer):
+    telefone = serializers.SerializerMethodField()
+    
     class Meta:
         model = Usuarios
         fields = [
@@ -61,9 +121,21 @@ class UsuarioRetrieveSerializer(ModelSerializer):
             'nome',
             'senha',
             'email',
-            'id_endereco'
+            'id_endereco',
+            'telefone'
         ]
         depth = 1
+        
+    def get_telefone(self, obj):
+        try:
+            telefone = Telefones.objects.get(id_usuarios=obj.id)
+            return {
+                'numero': telefone.numero,
+                'criado_em': telefone.criado_em,
+                'atualizado_em': telefone.atualizado_em
+            }
+        except Telefones.DoesNotExist:
+            return None
 
 
 # Serializer para endereços do usuário (para listagem na criação de coleta)
@@ -101,6 +173,7 @@ class ClienteComUsuarioCreateSerializer(ValidacaoCFPMixin, ModelSerializer):
         validators=[MinLengthValidator(8)],
         style={'input_type': 'password'}
     )
+    telefone = CharField(max_length=20, required=False, write_only=True, allow_blank=True)
     id_endereco = PrimaryKeyRelatedField(
         queryset=Enderecos.objects.all(),
         write_only=True,
@@ -123,7 +196,8 @@ class ClienteComUsuarioCreateSerializer(ValidacaoCFPMixin, ModelSerializer):
             'nome',             # Campo do usuário
             'email',            # Campo do usuário
             'senha',            # Campo do usuário
-            'id_endereco'       # Campo do usuário
+            'id_endereco',      # Campo do usuário
+            'telefone'          # Campo do telefone
         ]
         read_only_fields = [
             'id',
@@ -136,6 +210,9 @@ class ClienteComUsuarioCreateSerializer(ValidacaoCFPMixin, ModelSerializer):
         return value
 
     def create(self, validated_data):
+        # Extrai o telefone dos dados
+        telefone_numero = validated_data.pop('telefone', None)
+        
         # Extrai os dados do usuário
         usuario_data = {
             'nome': validated_data.pop('nome'),
@@ -147,6 +224,13 @@ class ClienteComUsuarioCreateSerializer(ValidacaoCFPMixin, ModelSerializer):
 
         # Cria o usuário primeiro
         usuario = Usuarios.objects.create(**usuario_data)
+
+        # Cria o telefone se foi fornecido
+        if telefone_numero and telefone_numero.strip():
+            Telefones.objects.create(
+                id_usuarios=usuario,
+                numero=telefone_numero.strip()
+            )
 
         # Cria o cliente vinculado ao usuário
         cliente = Clientes.objects.create(
@@ -170,6 +254,7 @@ class ClienteComUsuarioUpdateSerializer(ValidacaoCFPMixin, ModelSerializer):
         validators=[MinLengthValidator(8)],
         style={'input_type': 'password'}
     )
+    telefone = CharField(max_length=20, required=False, write_only=True, allow_blank=True)
     id_endereco = PrimaryKeyRelatedField(
         queryset=Enderecos.objects.all(),
         write_only=True,
@@ -187,6 +272,7 @@ class ClienteComUsuarioUpdateSerializer(ValidacaoCFPMixin, ModelSerializer):
             'usuario',
             'email',
             'senha',
+            'telefone',
             'id_endereco',
             'cpf',
             'data_nascimento',
@@ -199,6 +285,9 @@ class ClienteComUsuarioUpdateSerializer(ValidacaoCFPMixin, ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
+        # Trata o telefone
+        telefone_numero = validated_data.pop('telefone', None)
+        
         # Atualiza dados do usuário
         usuario = instance.id_usuarios
         if 'nome' in validated_data:
@@ -213,6 +302,21 @@ class ClienteComUsuarioUpdateSerializer(ValidacaoCFPMixin, ModelSerializer):
             usuario.id_endereco = validated_data['id_endereco']
         usuario.save()
 
+        # Atualiza ou cria telefone
+        if telefone_numero is not None:  # Permite string vazia para remover telefone
+            if telefone_numero.strip():
+                # Atualiza ou cria telefone
+                telefone, created = Telefones.objects.get_or_create(
+                    id_usuarios=usuario,
+                    defaults={'numero': telefone_numero.strip()}
+                )
+                if not created:
+                    telefone.numero = telefone_numero.strip()
+                    telefone.save()
+            else:
+                # Remove telefone se string vazia
+                Telefones.objects.filter(id_usuarios=usuario).delete()
+
         # Atualiza dados do cliente
         if 'cpf' in validated_data:
             instance.cpf = validated_data['cpf']
@@ -226,7 +330,7 @@ class ClienteComUsuarioUpdateSerializer(ValidacaoCFPMixin, ModelSerializer):
 
 
 class ClienteComUsuarioRetrieveSerializer(ModelSerializer):
-    id_usuarios = UsuarioCreateSerializer(read_only=True)
+    id_usuarios = UsuarioRetrieveSerializer(read_only=True)
     enderecos_usuario = serializers.SerializerMethodField()
 
     class Meta:
@@ -268,6 +372,7 @@ class ParceiroComUsuarioCreateSerializer(ValidacaoCNPJMixin, ModelSerializer):
         validators=[MinLengthValidator(8)],
         style={'input_type': 'password'}
     )
+    telefone = CharField(max_length=20, required=False, write_only=True, allow_blank=True)
     id_endereco = PrimaryKeyRelatedField(
         queryset=Enderecos.objects.all(),
         write_only=True,
@@ -293,6 +398,7 @@ class ParceiroComUsuarioCreateSerializer(ValidacaoCNPJMixin, ModelSerializer):
             'nome',           # Campo do usuário
             'email',          # Campo do usuário
             'senha',          # Campo do usuário
+            'telefone',       # Campo do telefone
             'id_endereco',    # Campo do usuário
             'materiais'       # Campo de materiais
         ]
@@ -309,6 +415,9 @@ class ParceiroComUsuarioCreateSerializer(ValidacaoCNPJMixin, ModelSerializer):
     def create(self, validated_data):
         # Extrai os materiais se existirem
         materiais_data = validated_data.pop('materiais', [])
+        
+        # Extrai o telefone dos dados
+        telefone_numero = validated_data.pop('telefone', None)
 
         # Extrai os dados do usuário
         usuario_data = {
@@ -321,6 +430,13 @@ class ParceiroComUsuarioCreateSerializer(ValidacaoCNPJMixin, ModelSerializer):
 
         # Cria o usuário primeiro
         usuario = Usuarios.objects.create(**usuario_data)
+
+        # Cria o telefone se foi fornecido
+        if telefone_numero and telefone_numero.strip():
+            Telefones.objects.create(
+                id_usuarios=usuario,
+                numero=telefone_numero.strip()
+            )
 
         # Cria o parceiro vinculado ao usuário
         parceiro = Parceiros.objects.create(
@@ -351,6 +467,7 @@ class ParceiroComUsuarioUpdateSerializer(ValidacaoCNPJMixin, ModelSerializer):
         validators=[MinLengthValidator(8)],
         style={'input_type': 'password'}
     )
+    telefone = CharField(max_length=20, required=False, write_only=True, allow_blank=True)
     id_endereco = PrimaryKeyRelatedField(
         queryset=Enderecos.objects.all(),
         write_only=True,
@@ -367,12 +484,13 @@ class ParceiroComUsuarioUpdateSerializer(ValidacaoCNPJMixin, ModelSerializer):
     )
 
     class Meta:
-        model = Clientes
+        model = Parceiros
         fields = [
             'nome',
             'usuario',
             'email',
             'senha',
+            'telefone',
             'id_endereco',
             'cnpj',
             'materiais'
@@ -384,6 +502,9 @@ class ParceiroComUsuarioUpdateSerializer(ValidacaoCNPJMixin, ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
+        # Trata o telefone
+        telefone_numero = validated_data.pop('telefone', None)
+        
         # Atualiza materiais se fornecidos
         if 'materiais' in validated_data:
             materiais_data = validated_data.pop('materiais')
@@ -410,7 +531,22 @@ class ParceiroComUsuarioUpdateSerializer(ValidacaoCNPJMixin, ModelSerializer):
             usuario.id_endereco = validated_data['id_endereco']
         usuario.save()
 
-        # Atualiza dados do cliente
+        # Atualiza ou cria telefone
+        if telefone_numero is not None:  # Permite string vazia para remover telefone
+            if telefone_numero.strip():
+                # Atualiza ou cria telefone
+                telefone, created = Telefones.objects.get_or_create(
+                    id_usuarios=usuario,
+                    defaults={'numero': telefone_numero.strip()}
+                )
+                if not created:
+                    telefone.numero = telefone_numero.strip()
+                    telefone.save()
+            else:
+                # Remove telefone se string vazia
+                Telefones.objects.filter(id_usuarios=usuario).delete()
+
+        # Atualiza dados do parceiro
         if 'cnpj' in validated_data:
             instance.cnpj = validated_data['cnpj']
         instance.save()
@@ -430,7 +566,7 @@ class MateriaisSerializer(ModelSerializer):
 
 
 class ParceiroComUsuarioRetrieveSerializer(ModelSerializer):
-    id_usuarios = UsuarioCreateSerializer(read_only=True)
+    id_usuarios = UsuarioRetrieveSerializer(read_only=True)
     materiais = MateriaisSerializer(many=True, read_only=True)
 
     class Meta:
@@ -1038,6 +1174,7 @@ class SolicitacoesSerializer(ModelSerializer):
 
 
 class TelefonesSerializer(ModelSerializer):
+    """Serializer antigo - mantido para compatibilidade"""
     class Meta:
         model = Telefones
         fields = [

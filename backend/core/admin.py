@@ -191,11 +191,19 @@ class SolicitacoesAdmin(admin.ModelAdmin):
 class TelefonesAdmin(admin.ModelAdmin):
     list_display = (
         'id_usuarios',
+        'get_usuario_nome',
         'numero',
         'criado_em',
         'atualizado_em',
     )
-    search_fields = ('numero', 'id_usuarios__nome')
+    list_select_related = ('id_usuarios',)
+    search_fields = ('numero', 'id_usuarios__nome', 'id_usuarios__usuario')
+    list_filter = ('criado_em',)
+    readonly_fields = ('criado_em', 'atualizado_em')
+
+    def get_usuario_nome(self, obj):
+        return obj.id_usuarios.nome if obj.id_usuarios else None
+    get_usuario_nome.short_description = 'Nome do Usuário'
 
 
 @admin.register(Usuarios)

@@ -861,6 +861,7 @@ class ColetasRetrieveSerializer(serializers.ModelSerializer):
     cliente_nome = serializers.SerializerMethodField()
     cliente_id = serializers.SerializerMethodField()
     parceiro_nome = serializers.SerializerMethodField()
+    parceiro_id = serializers.SerializerMethodField()
     material_nome = serializers.SerializerMethodField()
     endereco_completo = serializers.SerializerMethodField()
     valor_pagamento = serializers.SerializerMethodField()
@@ -874,6 +875,7 @@ class ColetasRetrieveSerializer(serializers.ModelSerializer):
             'id',
             'cliente_id',
             'cliente_nome',
+            'parceiro_id',
             'parceiro_nome',
             'material_nome',
             'peso_material',
@@ -901,6 +903,11 @@ class ColetasRetrieveSerializer(serializers.ModelSerializer):
     def get_parceiro_nome(self, obj):
         if obj.id_parceiros and obj.id_parceiros.id_usuarios:
             return obj.id_parceiros.id_usuarios.nome
+        return None
+
+    def get_parceiro_id(self, obj):
+        if obj.id_parceiros and obj.id_parceiros.id_usuarios:
+            return obj.id_parceiros.id_usuarios.id
         return None
 
     def get_material_nome(self, obj):

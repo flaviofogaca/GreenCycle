@@ -735,13 +735,123 @@ class EnderecoRetrieveSerializer(ModelSerializer):
         ]
 
 
+# ====================== SERIALIZERS DE AVALIAÇÃO ======================
+
+class AvaliacaoCreateSerializer(ModelSerializer):
+    """Serializer para criação de avaliação - apenas para uso interno"""
+    class Meta:
+        model = Avaliacoes
+        fields = [
+            'id_coletas',
+            'id_parceiros', 
+            'id_clientes',
+            'nota_parceiros',
+            'descricao_parceiros',
+            'nota_clientes',
+            'descricao_clientes',
+        ]
+
+    def validate(self, data):
+        # Validar notas (0-5)
+        if data.get('nota_parceiros') is not None:
+            if not (0 <= data['nota_parceiros'] <= 5):
+                raise ValidationError({'nota_parceiros': 'A nota deve ser entre 0 e 5'})
+        
+        if data.get('nota_clientes') is not None:
+            if not (0 <= data['nota_clientes'] <= 5):
+                raise ValidationError({'nota_clientes': 'A nota deve ser entre 0 e 5'})
+        
+        return data
+
+
+class AvaliacaoClienteSerializer(ModelSerializer):
+    """Serializer para cliente avaliar parceiro"""
+    nota_parceiros = serializers.IntegerField(min_value=0, max_value=5)
+    descricao_parceiros = serializers.CharField(max_length=300, required=False, allow_blank=True)
+
+    class Meta:
+        model = Avaliacoes
+        fields = ['nota_parceiros', 'descricao_parceiros']
+
+
+class AvaliacaoParceiroSerializer(ModelSerializer):
+    """Serializer para parceiro avaliar cliente"""
+    nota_clientes = serializers.IntegerField(min_value=0, max_value=5)
+    descricao_clientes = serializers.CharField(max_length=300, required=False, allow_blank=True)
+
+    class Meta:
+        model = Avaliacoes
+        fields = ['nota_clientes', 'descricao_clientes']
+
+
+class AvaliacaoRetrieveSerializer(ModelSerializer):
+    cliente_nome = serializers.SerializerMethodField()
+    parceiro_nome = serializers.SerializerMethodField()
+    material_nome = serializers.SerializerMethodField()
+    cliente_id = serializers.SerializerMethodField()
+    parceiro_id = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Avaliacoes
+        fields = [
+            'id',
+            'id_coletas',
+            'cliente_id',
+            'cliente_nome',
+            'parceiro_id',
+            'parceiro_nome',
+            'material_nome',
+            'nota_parceiros',
+            'descricao_parceiros',
+            'nota_clientes',
+            'descricao_clientes',
+            'criado_em',
+            'atualizado_em'
+        ]
+
+    def get_cliente_nome(self, obj):
+        return obj.id_clientes.id_usuarios.nome if obj.id_clientes and obj.id_clientes.id_usuarios else None
+
+    def get_parceiro_nome(self, obj):
+        return obj.id_parceiros.id_usuarios.nome if obj.id_parceiros and obj.id_parceiros.id_usuarios else None
+
+    def get_cliente_id(self, obj):
+        return obj.id_clientes.id_usuarios.id if obj.id_clientes and obj.id_clientes.id_usuarios else None
+
+    def get_parceiro_id(self, obj):
+        return obj.id_parceiros.id_usuarios.id if obj.id_parceiros and obj.id_parceiros.id_usuarios else None
+
+    def get_material_nome(self, obj):
+        return obj.id_coletas.id_materiais.nome if obj.id_coletas and obj.id_coletas.id_materiais else None
+
+
+class EstatisticasClienteSerializer(serializers.Serializer):
+    cliente_id = serializers.IntegerField()
+    cliente_nome = serializers.CharField()
+    total_avaliacoes = serializers.IntegerField()
+    media_notas = serializers.DecimalField(max_digits=3, decimal_places=2)
+    notas_detalhadas = serializers.DictField()
+    total_coletas_finalizadas = serializers.IntegerField()
+
+
+class EstatisticasParceiroSerializer(serializers.Serializer):
+    parceiro_id = serializers.IntegerField()
+    parceiro_nome = serializers.CharField()
+    total_avaliacoes = serializers.IntegerField()
+    media_notas = serializers.DecimalField(max_digits=3, decimal_places=2)
+    notas_detalhadas = serializers.DictField()
+    total_coletas_finalizadas = serializers.IntegerField()
+
+
 class AvaliacoesSerializer(ModelSerializer):
+    """Serializer antigo - mantido para compatibilidade"""
     class Meta:
         model = Avaliacoes
         fields = [
             'id',
             'id_parceiros',
             'id_clientes',
+            'id_coletas',
             'nota_parceiros',
             'descricao_parceiros',
             'nota_clientes',

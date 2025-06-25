@@ -10,15 +10,35 @@ from .models import (Avaliacoes, Clientes, Coletas, Enderecos, ImagemColetas,
 class AvaliacoesAdmin(admin.ModelAdmin):
     list_display = (
         'id',
-        'id_parceiros',
-        'id_clientes',
+        'id_coletas',
+        'get_cliente_nome',
+        'get_parceiro_nome',
         'nota_parceiros',
-        'descricao_parceiros',
         'nota_clientes',
-        'descricao_clientes',
         'criado_em',
         'atualizado_em',
     )
+    list_filter = ('nota_parceiros', 'nota_clientes', 'criado_em')
+    search_fields = (
+        'id_clientes__id_usuarios__nome',
+        'id_parceiros__id_usuarios__nome',
+        'descricao_parceiros',
+        'descricao_clientes'
+    )
+    list_select_related = (
+        'id_clientes__id_usuarios',
+        'id_parceiros__id_usuarios',
+        'id_coletas'
+    )
+    readonly_fields = ('criado_em', 'atualizado_em')
+
+    def get_cliente_nome(self, obj):
+        return obj.id_clientes.id_usuarios.nome if obj.id_clientes and obj.id_clientes.id_usuarios else None
+    get_cliente_nome.short_description = 'Cliente'
+    
+    def get_parceiro_nome(self, obj):
+        return obj.id_parceiros.id_usuarios.nome if obj.id_parceiros and obj.id_parceiros.id_usuarios else None
+    get_parceiro_nome.short_description = 'Parceiro'
 
 
 @admin.register(Clientes)
@@ -45,6 +65,7 @@ class ColetasAdmin(admin.ModelAdmin):
         'quantidade_material',
         'get_estado_solicitacao',
         'get_estado_pagamento',
+        'get_possui_avaliacao',
         'criado_em',
         'atualizado_em',
     )
@@ -68,6 +89,11 @@ class ColetasAdmin(admin.ModelAdmin):
     def get_estado_pagamento(self, obj):
         return obj.id_pagamentos.get_estado_pagamento_display() if obj.id_pagamentos else None
     get_estado_pagamento.short_description = 'Estado Pagamento'
+
+    def get_possui_avaliacao(self, obj):
+        return hasattr(obj, 'avaliacao') and obj.avaliacao is not None
+    get_possui_avaliacao.short_description = 'Possui Avaliação'
+    get_possui_avaliacao.boolean = True
 
 
 @admin.register(ImagemColetas)

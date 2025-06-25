@@ -98,6 +98,9 @@ class Avaliacoes(Base):
         'Parceiros', models.DO_NOTHING, db_column='id_parceiros')
     id_clientes = models.ForeignKey(
         'Clientes', models.DO_NOTHING, db_column='id_clientes')
+    id_coletas = models.OneToOneField(
+        'Coletas', models.CASCADE, db_column='id_coletas',
+        unique=True, related_name='avaliacao')
     nota_parceiros = models.SmallIntegerField()
     descricao_parceiros = models.CharField(
         max_length=300, blank=True, null=True)

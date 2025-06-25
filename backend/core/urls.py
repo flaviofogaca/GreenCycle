@@ -94,6 +94,14 @@ urlpatterns = [
 # POST /v1/coletas/{id}/cancelar-coleta/ - Cancelar coleta (cliente)
 # POST /v1/coletas/{id}/upload-imagem/ - Upload de imagem
 #
+# AVALIAÇÕES - Sistema de avaliações mútuas:
+# GET /v1/avaliacoes/ - Lista todas as avaliações
+# GET /v1/avaliacoes/{id}/ - Buscar avaliação por ID
+# POST /v1/avaliacoes/avaliar-parceiro/ - Cliente avalia parceiro (requer: coleta_id, cliente_id, nota_parceiros, descricao_parceiros)
+# POST /v1/avaliacoes/avaliar-cliente/ - Parceiro avalia cliente (requer: coleta_id, parceiro_id, nota_clientes, descricao_clientes)
+# GET /v1/avaliacoes/estatisticas-cliente/{cliente_id}/ - Estatísticas de avaliações do cliente
+# GET /v1/avaliacoes/estatisticas-parceiro/{parceiro_id}/ - Estatísticas de avaliações do parceiro
+#
 # ENDEREÇOS:
 # POST /v1/enderecos/buscar-cep/ - Buscar dados de endereço por CEP
 #

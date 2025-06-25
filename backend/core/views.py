@@ -18,7 +18,10 @@ from .models import (Avaliacoes, Clientes, Coletas, Enderecos, ImagemColetas,
                      ImagemPerfil, Materiais, MateriaisParceiros,
                      MateriaisPontosColeta, Pagamentos, Parceiros,
                      PontosColeta, Solicitacoes, Telefones, Usuarios)
-from .serializers import (AvaliacoesSerializer,
+from .serializers import (AvaliacaoClienteSerializer,
+                          AvaliacaoCreateSerializer,
+                          AvaliacaoParceiroSerializer,
+                          AvaliacaoRetrieveSerializer, AvaliacoesSerializer,
                           ClienteComUsuarioCreateSerializer,
                           ClienteComUsuarioRetrieveSerializer,
                           ClienteComUsuarioUpdateSerializer,
@@ -27,6 +30,8 @@ from .serializers import (AvaliacoesSerializer,
                           ColetasRetrieveSerializer, ColetasUpdateSerializer,
                           EnderecoBuscaCEPSerializer, EnderecoCreateSerializer,
                           EnderecoRetrieveSerializer, EnderecoUpdateSerializer,
+                          EstatisticasClienteSerializer,
+                          EstatisticasParceiroSerializer,
                           ImagemPerfilCreateSerializer,
                           ImagemPerfilRetrieveSerializer,
                           MateriaisParceirosSerializer,
@@ -230,8 +235,283 @@ class EnderecosViewSet(viewsets.ModelViewSet):
 
 
 class AvaliacoesViewSet(viewsets.ModelViewSet):
-    queryset = Avaliacoes.objects.all()
-    serializer_class = AvaliacoesSerializer
+    queryset = Avaliacoes.objects.all().select_related(
+        'id_clientes__id_usuarios',
+        'id_parceiros__id_usuarios',
+        'id_coletas__id_materiais'
+    )
+    
+    def get_serializer_class(self):
+        if self.action == 'retrieve' or self.action == 'list':
+            return AvaliacaoRetrieveSerializer
+        elif self.action == 'avaliar_parceiro':
+            return AvaliacaoClienteSerializer
+        elif self.action == 'avaliar_cliente':
+            return AvaliacaoParceiroSerializer
+        elif self.action in ['estatisticas_cliente', 'estatisticas_parceiro']:
+            return AvaliacaoRetrieveSerializer  # Placeholder
+        return AvaliacoesSerializer
+
+    def create(self, request, *args, **kwargs):
+        """Criação automática de avaliação - uso interno apenas"""
+        return Response(
+            {'error': 'Use os endpoints específicos para avaliar'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    @action(detail=False, methods=['post'], url_path='avaliar-parceiro')
+    def avaliar_parceiro(self, request):
+        """
+        Permite que um cliente avalie um parceiro após coleta finalizada
+        """
+        coleta_id = request.data.get('coleta_id')
+        cliente_id = request.data.get('cliente_id')
+        
+        if not coleta_id or not cliente_id:
+            return Response(
+                {'error': 'coleta_id e cliente_id são obrigatórios'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            coleta = Coletas.objects.select_related(
+                'id_solicitacoes', 'id_pagamentos', 'id_clientes', 'id_parceiros'
+            ).get(id=coleta_id)
+        except Coletas.DoesNotExist:
+            return Response(
+                {'error': 'Coleta não encontrada'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verificar se o cliente da requisição é o mesmo da coleta
+        if coleta.id_clientes.id_usuarios.id != int(cliente_id):
+            return Response(
+                {'error': 'Você só pode avaliar suas próprias coletas'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Verificar se a coleta está finalizada e paga
+        if (coleta.id_solicitacoes.estado_solicitacao != 'finalizado' or 
+            coleta.id_pagamentos.estado_pagamento != 'pago'):
+            return Response(
+                {'error': 'A coleta deve estar finalizada e paga para ser avaliada'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Buscar avaliação existente (sempre deve existir após finalização)
+        try:
+            avaliacao = Avaliacoes.objects.get(id_coletas=coleta)
+        except Avaliacoes.DoesNotExist:
+            return Response(
+                {'error': 'Avaliação não encontrada. A coleta pode não ter sido finalizada corretamente.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Cliente pode editar sua avaliação quantas vezes quiser
+        # (removida validação que impedia re-avaliação)
+        
+        # Atualizar avaliação do parceiro
+        serializer = AvaliacaoClienteSerializer(data=request.data)
+        if serializer.is_valid():
+            avaliacao.nota_parceiros = serializer.validated_data['nota_parceiros']
+            avaliacao.descricao_parceiros = serializer.validated_data.get('descricao_parceiros', '')
+            avaliacao.save()
+            
+            # Verificar se é primeira avaliação ou edição
+            if avaliacao.nota_parceiros == 0:
+                mensagem = 'Avaliação do parceiro realizada com sucesso'
+            else:
+                mensagem = 'Avaliação do parceiro atualizada com sucesso'
+            
+            return Response(
+                {'message': mensagem},
+                status=status.HTTP_200_OK
+            )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], url_path='avaliar-cliente')
+    def avaliar_cliente(self, request):
+        """
+        Permite que um parceiro avalie um cliente após coleta finalizada
+        """
+        coleta_id = request.data.get('coleta_id')
+        parceiro_id = request.data.get('parceiro_id')
+        
+        if not coleta_id or not parceiro_id:
+            return Response(
+                {'error': 'coleta_id e parceiro_id são obrigatórios'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            coleta = Coletas.objects.select_related(
+                'id_solicitacoes', 'id_pagamentos', 'id_clientes', 'id_parceiros'
+            ).get(id=coleta_id)
+        except Coletas.DoesNotExist:
+            return Response(
+                {'error': 'Coleta não encontrada'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verificar se o parceiro da requisição é o mesmo da coleta
+        if not coleta.id_parceiros or coleta.id_parceiros.id_usuarios.id != int(parceiro_id):
+            return Response(
+                {'error': 'Você só pode avaliar coletas que você realizou'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Verificar se a coleta está finalizada e paga
+        if (coleta.id_solicitacoes.estado_solicitacao != 'finalizado' or 
+            coleta.id_pagamentos.estado_pagamento != 'pago'):
+            return Response(
+                {'error': 'A coleta deve estar finalizada e paga para ser avaliada'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Buscar avaliação existente (sempre deve existir após finalização)
+        try:
+            avaliacao = Avaliacoes.objects.get(id_coletas=coleta)
+        except Avaliacoes.DoesNotExist:
+            return Response(
+                {'error': 'Avaliação não encontrada. A coleta pode não ter sido finalizada corretamente.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Parceiro pode editar sua avaliação quantas vezes quiser
+        # (removida validação que impedia re-avaliação)
+        
+        # Atualizar avaliação do cliente
+        serializer = AvaliacaoParceiroSerializer(data=request.data)
+        if serializer.is_valid():
+            avaliacao.nota_clientes = serializer.validated_data['nota_clientes']
+            avaliacao.descricao_clientes = serializer.validated_data.get('descricao_clientes', '')
+            avaliacao.save()
+            
+            # Verificar se é primeira avaliação ou edição
+            if avaliacao.nota_clientes == 0:
+                mensagem = 'Avaliação do cliente realizada com sucesso'
+            else:
+                mensagem = 'Avaliação do cliente atualizada com sucesso'
+                
+            return Response(
+                {'message': mensagem},
+                status=status.HTTP_200_OK
+            )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'], url_path='estatisticas-cliente/(?P<cliente_id>[^/]+)')
+    def estatisticas_cliente(self, request, cliente_id=None):
+        """
+        Retorna estatísticas de avaliações de um cliente
+        """
+        try:
+            cliente = Clientes.objects.select_related('id_usuarios').get(
+                id_usuarios=cliente_id
+            )
+        except Clientes.DoesNotExist:
+            return Response(
+                {'error': 'Cliente não encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Buscar avaliações onde o cliente foi avaliado
+        avaliacoes = Avaliacoes.objects.filter(
+            id_clientes=cliente,
+            nota_clientes__gt=0  # Apenas avaliações com nota válida
+        )
+
+        if not avaliacoes.exists():
+            return Response({
+                'cliente_id': cliente.id_usuarios.id,
+                'cliente_nome': cliente.id_usuarios.nome,
+                'total_avaliacoes': 0,
+                'media_notas': 0,
+                'notas_detalhadas': {str(i): 0 for i in range(6)},
+                'total_coletas_finalizadas': 0
+            })
+
+        # Calcular estatísticas
+        notas = [av.nota_clientes for av in avaliacoes]
+        media_notas = sum(notas) / len(notas)
+        
+        # Contar cada nota
+        notas_detalhadas = {str(i): 0 for i in range(6)}
+        for nota in notas:
+            notas_detalhadas[str(nota)] += 1
+
+        # Total de coletas finalizadas do cliente
+        total_coletas = Coletas.objects.filter(
+            id_clientes=cliente,
+            id_solicitacoes__estado_solicitacao='finalizado',
+            id_pagamentos__estado_pagamento='pago'
+        ).count()
+
+        return Response({
+            'cliente_id': cliente.id_usuarios.id,
+            'cliente_nome': cliente.id_usuarios.nome,
+            'total_avaliacoes': len(notas),
+            'media_notas': round(media_notas, 2),
+            'notas_detalhadas': notas_detalhadas,
+            'total_coletas_finalizadas': total_coletas
+        })
+
+    @action(detail=False, methods=['get'], url_path='estatisticas-parceiro/(?P<parceiro_id>[^/]+)')
+    def estatisticas_parceiro(self, request, parceiro_id=None):
+        """
+        Retorna estatísticas de avaliações de um parceiro
+        """
+        try:
+            parceiro = Parceiros.objects.select_related('id_usuarios').get(
+                id_usuarios=parceiro_id
+            )
+        except Parceiros.DoesNotExist:
+            return Response(
+                {'error': 'Parceiro não encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Buscar avaliações onde o parceiro foi avaliado
+        avaliacoes = Avaliacoes.objects.filter(
+            id_parceiros=parceiro,
+            nota_parceiros__gt=0  # Apenas avaliações com nota válida
+        )
+
+        if not avaliacoes.exists():
+            return Response({
+                'parceiro_id': parceiro.id_usuarios.id,
+                'parceiro_nome': parceiro.id_usuarios.nome,
+                'total_avaliacoes': 0,
+                'media_notas': 0,
+                'notas_detalhadas': {str(i): 0 for i in range(6)},
+                'total_coletas_finalizadas': 0
+            })
+
+        # Calcular estatísticas
+        notas = [av.nota_parceiros for av in avaliacoes]
+        media_notas = sum(notas) / len(notas)
+        
+        # Contar cada nota
+        notas_detalhadas = {str(i): 0 for i in range(6)}
+        for nota in notas:
+            notas_detalhadas[str(nota)] += 1
+
+        # Total de coletas finalizadas do parceiro
+        total_coletas = Coletas.objects.filter(
+            id_parceiros=parceiro,
+            id_solicitacoes__estado_solicitacao='finalizado',
+            id_pagamentos__estado_pagamento='pago'
+        ).count()
+
+        return Response({
+            'parceiro_id': parceiro.id_usuarios.id,
+            'parceiro_nome': parceiro.id_usuarios.nome,
+            'total_avaliacoes': len(notas),
+            'media_notas': round(media_notas, 2),
+            'notas_detalhadas': notas_detalhadas,
+            'total_coletas_finalizadas': total_coletas
+        })
 
 
 class ColetasViewSet(viewsets.ModelViewSet):
@@ -487,6 +767,7 @@ class ColetasViewSet(viewsets.ModelViewSet):
         Permite que um cliente finalize uma coleta
         Condições: pagamento pendente E solicitação coletado
         Ao finalizar: muda solicitação para finalizado E pagamento para pago
+        NOVO: Cria automaticamente registro de avaliação
         """
         coleta = self.get_object()
         
@@ -510,8 +791,21 @@ class ColetasViewSet(viewsets.ModelViewSet):
             pagamento.estado_pagamento = 'pago'
             pagamento.save()
             
+            # Criar registro de avaliação automaticamente
+            # Verificar se já não existe (por segurança)
+            if not hasattr(coleta, 'avaliacao') or not coleta.avaliacao:
+                Avaliacoes.objects.create(
+                    id_coletas=coleta,
+                    id_clientes=coleta.id_clientes,
+                    id_parceiros=coleta.id_parceiros,
+                    nota_parceiros=0,  # Valor padrão até cliente avaliar
+                    nota_clientes=0,   # Valor padrão até parceiro avaliar
+                    descricao_parceiros='',
+                    descricao_clientes=''
+                )
+            
             return Response(
-                {'message': 'Coleta finalizada com sucesso'},
+                {'message': 'Coleta finalizada com sucesso e avaliação criada'},
                 status=status.HTTP_200_OK
             )
 

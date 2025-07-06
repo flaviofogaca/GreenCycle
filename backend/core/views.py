@@ -7,14 +7,14 @@ from django.db.models import Prefetch, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.generics import ListCreateAPIView
 from rest_framework.response import Response
 # from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
-from .models import (Avaliacoes, Clientes, Coletas, Enderecos, ImagemColetas,
+from .models import (Avaliacoes, Clientes, Coletas, Enderecos, EnderecoCliente, ImagemColetas,
                      ImagemPerfil, Materiais, MateriaisParceiros,
                      MateriaisPontosColeta, Pagamentos, Parceiros,
                      PontosColeta, Solicitacoes, Telefones, Usuarios)
@@ -45,7 +45,7 @@ from .serializers import (AvaliacaoClienteSerializer,
                           PontosColetaUpdateSerializer, SolicitacoesSerializer,
                           TelefoneCreateSerializer, TelefoneRetrieveSerializer,
                           TelefonesSerializer, TelefoneUpdateSerializer,
-                          UsuarioCreateSerializer, UsuarioRetrieveSerializer)
+                          UsuarioCreateSerializer, UsuarioRetrieveSerializer, EnderecoClienteSerializer)
 from .services import imagekit_service
 
 
@@ -148,6 +148,16 @@ class ClienteComUsuarioCreateViewSet(viewsets.ModelViewSet):
                 {'detail': 'Cliente não encontrado com este nome de usuário'},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+class EnderecoClienteViewSet(viewsets.ModelViewSet):
+    serializer_class = EnderecoClienteSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return EnderecoCliente.objects.filter(cliente=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(cliente=self.request.user)
 
 
 class ParceiroComUsuarioCreateViewSet(viewsets.ModelViewSet):

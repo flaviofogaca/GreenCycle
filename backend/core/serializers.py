@@ -10,7 +10,7 @@ from rest_framework.serializers import (CharField, DateField, ImageField,
 
 from .mixins import (GeocodingMixin, ValidacaoCEPMixin, ValidacaoCFPMixin,
                      ValidacaoCNPJMixin, ValidacaoTelefoneMixin)
-from .models import (Avaliacoes, Clientes, Coletas, Enderecos, ImagemColetas,
+from .models import (Avaliacoes, Clientes, Coletas, Enderecos, EnderecoCliente, ImagemColetas,
                      ImagemPerfil, Materiais, MateriaisParceiros,
                      MateriaisPontosColeta, Pagamentos, Parceiros,
                      PontosColeta, Solicitacoes, Telefones, Usuarios)
@@ -51,6 +51,11 @@ class TelefoneUpdateSerializer(ValidacaoTelefoneMixin, ModelSerializer):
     def validate_numero(self, value):
         return self.validar_telefone(value)
 
+class EnderecoClienteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EnderecoCliente
+        fields = '__all__'
+        read_only_fields = ['cliente']
 
 class TelefoneRetrieveSerializer(ModelSerializer):
     usuario_nome = serializers.SerializerMethodField()

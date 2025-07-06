@@ -12,7 +12,7 @@ from .views import (AvaliacoesViewSet, ClienteComUsuarioCreateViewSet,
                     PagamentosViewSet, ParceiroComUsuarioCreateViewSet,
                     ParceirosApiView, PingView, PontosColetaViewSet,
                     SolicitacoesViewSet, TelefonesViewSet,
-                    UsuariosCreateViewSet, home)
+                    UsuariosCreateViewSet,EnderecoClienteViewSet, home)
 
 # from django.conf.urls.static import static
 # from django.conf import settings
@@ -33,6 +33,11 @@ router.register(
     r'parceiros',
     ParceiroComUsuarioCreateViewSet,
     basename='parceiros'
+)
+router.register(
+    r'endereco-cliente',
+    EnderecoClienteViewSet,
+    basename='endereco-cliente'
 )
 
 # Rotas para entidades principais
